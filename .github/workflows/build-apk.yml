@@ -1,0 +1,63 @@
+# Construye el APK de pruebas en los servidores de GitHub (no hace falta Android Studio).
+# Se ejecuta solo al subir cambios, o a mano desde la pestaña "Actions".
+name: Construir APK de pruebas
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Comprobar y compilar la web del técnico
+        run: |
+          npm run typecheck
+          npm run build:tecnico
+
+      - name: Crear proyecto Android y aplicar ajustes
+        run: |
+          npx cap add android
+          node scripts/android-setup.mjs
+          npx cap sync android
+
+      - name: Compilar APK (debug)
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Guardar APK como archivo descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: geocampo-apk-${{ github.run_number }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publicar APK en "Releases" (descarga directa desde el móvil)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "prueba-${{ github.run_number }}" \
+            android/app/build/outputs/apk/debug/app-debug.apk \
+            --title "APK de pruebas #${{ github.run_number }}" \
+            --notes "Compilado automáticamente. Solo para pruebas." \
+            --prerelease
