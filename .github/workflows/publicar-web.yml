@@ -1,0 +1,58 @@
+# Publica en GitHub Pages dos páginas para verlas desde el ordenador, sin instalar nada:
+#   https://<usuario>.github.io/<repositorio>/          → web del gestor
+#   https://<usuario>.github.io/<repositorio>/tecnico/  → vista previa de la app del técnico
+# La vista previa del técnico NO tiene GPS en segundo plano ni archivos reales del móvil:
+# sirve para revisar pantallas y formularios. Eso solo se prueba en el APK.
+name: Publicar web (gestor y vista previa del técnico)
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Comprobar el código
+        run: npm run typecheck
+
+      - name: Compilar gestor y técnico
+        run: |
+          BASE_PATH="/${{ github.event.repository.name }}/" npm run build:gestor
+          npm run build:tecnico
+
+      - name: Montar el sitio
+        run: |
+          mkdir -p site
+          cp -r dist/gestor/. site/
+          mkdir -p site/tecnico
+          cp -r dist/tecnico/. site/tecnico/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: despliegue
+        uses: actions/deploy-pages@v4
