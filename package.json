@@ -1,0 +1,39 @@
+{
+  "name": "geocampo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev:tecnico": "vite --mode tecnico",
+    "dev:gestor": "vite --mode gestor",
+    "build:tecnico": "vite build --mode tecnico",
+    "build:gestor": "vite build --mode gestor",
+    "build": "npm run typecheck && npm run build:tecnico && npm run build:gestor",
+    "typecheck": "tsc --noEmit",
+    "android:add": "cap add android && node scripts/android-setup.mjs",
+    "android:setup": "node scripts/android-setup.mjs",
+    "android:sync": "npm run build:tecnico && cap sync android",
+    "android:open": "cap open android",
+    "android:run": "npm run android:sync && cap run android"
+  },
+  "dependencies": {
+    "@capacitor-community/background-geolocation": "^1.3.1",
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/share": "^8.0.3",
+    "dexie": "^4.4.7",
+    "leaflet": "^1.9.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.2",
+    "@types/leaflet": "^1.9.22",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.8",
+    "vite-plugin-pwa": "^2.0.0",
+    "workbox-build": "^7.4.1",
+    "workbox-window": "^7.4.1"
+  }
+}
