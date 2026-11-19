@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   // TODO: cambia el id ANTES de ejecutar `npm run android:add` (después cuesta cambiarlo).
-  appId: 'com.example.geocampo',
+  appId: 'SPCam',
   appName: 'GeoCampo',
   webDir: 'dist/tecnico',
   android: {
