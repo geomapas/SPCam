@@ -6,7 +6,7 @@ import { montarCabecera } from '@/ui/shared/cabecera';
 import { crearMapa, Traza } from '@/ui/shared/mapa';
 import { montarPanelCapas } from '@/ui/shared/panelCapas';
 
-const { botonCapas } = montarCabecera('Gestor');
+const { botonCapas } = montarCabecera({ subtitulo: 'Gestor' });
 const contenedor = document.querySelector<HTMLElement>('.mapa-wrap')!;
 const app = crearMapa(document.getElementById('mapa')!);
 const traza = new Traza(app.map);

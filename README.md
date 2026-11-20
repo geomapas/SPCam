@@ -1,4 +1,4 @@
-# GeoCampo — esqueleto offline-first (paso 1 del plan)
+# SPCam — app de campo offline-first
 
 Un repositorio, dos destinos de build:
 
@@ -47,11 +47,17 @@ Cuando llegue Firebase, entra solo en `src/data/`.
 
 ## Cómo funciona la grabación
 
+El icono de **recorrido** (arriba a la derecha, junto al de capas) abre su panel: **Iniciar, Pausar, Reanudar y Finalizar**.
+
 1. Cada punto GPS se **anexa a un archivo** `tracks/<uuid>.jsonl` (un punto por línea) en cuanto llega.
-2. Al pulsar **Parar**, se genera `tracks/<uuid>.gpx` a partir de ese archivo.
-3. Si Android mata la app a mitad de grabación, al reabrir se **finaliza automáticamente** el recorrido
+2. **Pausar** para el GPS (ahorra batería). **Reanudar** lo vuelve a arrancar y abre un **tramo nuevo**:
+   lo que te muevas durante la pausa no se une con una línea ni suma distancia.
+3. **Finalizar** (pide confirmación) genera `tracks/<uuid>.gpx` a partir de ese archivo, con un tramo por cada pausa.
+4. Si Android mata la app a mitad de grabación, al reabrir se **finaliza automáticamente** el recorrido
    con los puntos que había (aparece marcado como «recuperado»).
-4. El botón **GPX** de cada recorrido lo comparte (correo, Drive, WhatsApp…) para que puedas abrirlo en el ordenador.
+5. **Cerrar el panel no detiene la grabación.** El icono se pone **rojo** (con un punto que parpadea) mientras graba
+   y **ámbar** en pausa. Los errores del GPS salen como aviso sobre el mapa aunque el panel esté cerrado.
+6. En el panel, la lista de recorridos guardados: **Ver** (línea azul en el mapa) y **GPX** (compartir).
 
 ## Requisitos previos
 
@@ -95,14 +101,14 @@ un sitio seguro y con copia**: sin ella no podrás actualizar las instalaciones 
 
 ## Prueba de campo (la que decide si el plugin sirve)
 
-1. Abre la app, concede **ubicación** («Mientras se usa la app» / «Permitir siempre» si lo ofrece)
-   y **notificaciones**.
-2. Pulsa **Iniciar recorrido**. Verás la notificación permanente «GeoCampo: grabando recorrido».
-3. Ajustes del móvil → Batería → GeoCampo → **Sin restricciones** (o «No optimizar»).
+1. Abre la app y concede **ubicación** y **notificaciones** cuando las pida.
+2. Pulsa el **icono de recorrido** → **Iniciar recorrido**. El icono se pone rojo y aparece la notificación permanente «SPCam: grabando recorrido».
+3. Ajustes del móvil → Batería → SPCam → **Sin restricciones** (o «No optimizar»).
    Xiaomi/Huawei/Samsung/Oppo tienen además un «inicio automático» o «apps protegidas»: actívalo.
-4. **Bloquea la pantalla y camina 15-20 minutos** (mejor 30+ para pasar el corte de 5 minutos).
-5. Desbloquea: el contador debe haber seguido subiendo y la traza no debe tener saltos largos.
-6. Pulsa **Parar**, **Ver** y **GPX**; abre el GPX en el ordenador.
+4. Cierra el panel, **bloquea la pantalla y camina 15-20 minutos** (mejor 30+ para pasar el corte de 5 minutos).
+   Prueba también una **pausa** en mitad del recorrido y reanuda.
+5. Desbloquea: el icono debe seguir rojo y el contador de puntos debe haber subido.
+6. **Finalizar** → **Ver** y **GPX**; abre el GPX en el ordenador.
 7. Prueba de muerte de la app: con grabación en curso, desliza la app fuera de recientes, espera
    un minuto y reábrela. Debe aparecer el aviso de recorrido recuperado.
 

@@ -13,6 +13,8 @@ export interface TrackPoint {
   alt: number | null;
   /** m/s */
   speed: number | null;
+  /** Tramo del recorrido (0, 1, 2…). Cada pausa abre un tramo nuevo para no unir con una línea el salto de la pausa. */
+  seg?: number;
 }
 
 export type TrackStatus = 'grabando' | 'finalizado';

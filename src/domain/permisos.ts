@@ -9,6 +9,7 @@ export type Perfil = 'tecnico' | 'colaborador' | 'gestor';
 
 export const PERMISOS = [
   'grabar_recorridos',
+  'ver_recorridos_guardados',
   'cambiar_mapa_base',
   'ver_capas_tematicas',
 ] as const;
@@ -18,6 +19,7 @@ const TODOS: Record<Perfil, boolean> = { tecnico: true, colaborador: true, gesto
 
 const TABLA: Record<Permiso, Record<Perfil, boolean>> = {
   grabar_recorridos: { ...TODOS },
+  ver_recorridos_guardados: { ...TODOS },
   cambiar_mapa_base: { ...TODOS },
   ver_capas_tematicas: { ...TODOS },
 };

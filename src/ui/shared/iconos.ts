@@ -4,6 +4,9 @@ const svg = (cuerpo: string, size = 16, extra = '') =>
 export const iconoCapas = (s = 16) =>
   svg('<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>', s);
 
+export const iconoTrack = (s = 16) =>
+  svg('<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>', s);
+
 export const iconoCerrar = (s = 16) =>
   svg('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>', s);
 

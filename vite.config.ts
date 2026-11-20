@@ -48,8 +48,8 @@ export default defineConfig(({ mode }) => {
                 navigateFallbackDenylist: [/\/tecnico\//],
               },
               manifest: {
-                name: 'GeoCampo · Gestor',
-                short_name: 'GeoCampo',
+                name: 'SPCam · Gestor',
+                short_name: 'SPCam',
                 description: 'Consulta y gestión de datos de campo',
                 theme_color: '#2f6fde',
                 background_color: '#ffffff',

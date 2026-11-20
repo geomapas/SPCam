@@ -1,12 +1,12 @@
 import { CAPAS_TEMATICAS, MAPAS_BASE, type EstadoCapas, type GestorCapas } from '@/domain/capas';
 import { puede } from '@/domain/permisos';
-import { iconoCapas, iconoCerrar, iconoMapa, iconoSatelite } from './iconos';
+import { iconoCapas, iconoMapa, iconoSatelite } from './iconos';
+import { crearPanelFlotante } from './panelFlotante';
 
 const ICONOS = { satelite: iconoSatelite, mapa: iconoMapa } as const;
 
 /**
  * Panel "Cartografía y capas": selector de mapa base (botones) y capas temáticas (interruptores).
- * Se abre con el botón de la cabecera y se dibuja dentro del contenedor del mapa.
  */
 export function montarPanelCapas(opts: {
   gestor: GestorCapas;
@@ -18,26 +18,12 @@ export function montarPanelCapas(opts: {
   const verCapas = puede('ver_capas_tematicas');
   if (!verBase && !verCapas) return;
 
-  const panel = document.createElement('section');
-  panel.className = 'panel-capas glass-card';
-  panel.hidden = true;
-  panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-label', 'Cartografía y capas');
-
-  const cab = document.createElement('div');
-  cab.className = 'pc-cab';
-  cab.innerHTML = `<span class="pc-titulo">${iconoCapas(14)}<span>Cartografía y capas</span></span>`;
-  const cerrar = document.createElement('button');
-  cerrar.type = 'button';
-  cerrar.className = 'pc-cerrar';
-  cerrar.setAttribute('aria-label', 'Cerrar');
-  cerrar.innerHTML = iconoCerrar(16);
-  cab.append(cerrar);
-  panel.append(cab);
-
-  const cuerpo = document.createElement('div');
-  cuerpo.className = 'pc-cuerpo';
-  panel.append(cuerpo);
+  const { cuerpo } = crearPanelFlotante({
+    titulo: 'Cartografía y capas',
+    icono: iconoCapas(14),
+    boton,
+    contenedor,
+  });
 
   // ── Mapa base ──
   const botonesBase = new Map<string, HTMLButtonElement>();
@@ -109,17 +95,4 @@ export function montarPanelCapas(opts: {
   };
   pintar(gestor.estado);
   gestor.suscribir(pintar);
-
-  const abrir = (abierto: boolean): void => {
-    panel.hidden = !abierto;
-    boton.classList.toggle('active', abierto);
-    boton.setAttribute('aria-expanded', String(abierto));
-  };
-  boton.addEventListener('click', () => abrir(panel.hidden));
-  cerrar.addEventListener('click', () => abrir(false));
-  document.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Escape' && !panel.hidden) abrir(false);
-  });
-
-  contenedor.append(panel);
 }

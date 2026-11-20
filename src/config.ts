@@ -6,7 +6,7 @@ export const GPS = {
   precisionMaximaM: 50,
   /** Cada cuántos puntos se actualiza el contador en la base local. */
   guardarMetadatosCadaN: 10,
-  tituloNotificacion: 'GeoCampo: grabando recorrido',
+  tituloNotificacion: 'SPCam: grabando recorrido',
   textoNotificacion: 'Toca para volver a la app. Se guarda cada punto.',
 } as const;
 

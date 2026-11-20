@@ -19,7 +19,7 @@ class GeoCampoDB extends Dexie {
   preferencias!: Table<Preferencia, string>;
 
   constructor() {
-    super('geocampo');
+    super('geocampo') // nombre interno histórico: NO cambiarlo (se perderían los datos de los móviles);
     this.version(1).stores({
       tracks: 'id, status, startedAt',
     });

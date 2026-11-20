@@ -11,8 +11,31 @@ export function distanciaM(a: Pick<TrackPoint, 'lat' | 'lon'>, b: Pick<TrackPoin
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
+/** Longitud total. No suma el salto entre tramos distintos (lo que se mueve durante una pausa no cuenta). */
 export function longitudM(puntos: TrackPoint[]): number {
   let total = 0;
-  for (let i = 1; i < puntos.length; i++) total += distanciaM(puntos[i - 1]!, puntos[i]!);
+  for (let i = 1; i < puntos.length; i++) {
+    const a = puntos[i - 1]!;
+    const b = puntos[i]!;
+    if ((a.seg ?? 0) !== (b.seg ?? 0)) continue;
+    total += distanciaM(a, b);
+  }
   return total;
+}
+
+/** Agrupa los puntos por tramo, conservando el orden. */
+export function porTramos(puntos: TrackPoint[]): TrackPoint[][] {
+  const tramos: TrackPoint[][] = [];
+  let actual: TrackPoint[] | null = null;
+  let segActual: number | null = null;
+  for (const p of puntos) {
+    const s = p.seg ?? 0;
+    if (!actual || s !== segActual) {
+      actual = [];
+      tramos.push(actual);
+      segActual = s;
+    }
+    actual.push(p);
+  }
+  return tramos;
 }

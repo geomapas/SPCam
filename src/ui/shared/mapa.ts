@@ -1,6 +1,7 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { CAPAS_TEMATICAS, MAPAS_BASE, type Fuente, type EstadoCapas, type GestorCapas } from '@/domain/capas';
+import { porTramos } from '@/domain/tracks/geo';
 import type { TrackPoint } from '@/domain/types';
 
 function crearCapaLeaflet(f: Fuente, zIndex: number): L.TileLayer {
@@ -82,6 +83,8 @@ export function crearMapa(contenedor: HTMLElement): MapaApp {
 export class Traza {
   private linea: L.Polyline;
   private posicion: L.CircleMarker;
+  private tramos: L.LatLngTuple[][] = [];
+  private segActual: number | null = null;
 
   constructor(private readonly mapa: L.Map, color = '#d93025') {
     this.linea = L.polyline([], { color, weight: 4 }).addTo(mapa);
@@ -89,20 +92,31 @@ export class Traza {
   }
 
   limpiar(): void {
+    this.tramos = [];
+    this.segActual = null;
     this.linea.setLatLngs([]);
     this.posicion.remove();
   }
 
+  /** Añade un punto en directo. Si cambia de tramo (tras una pausa), empieza una línea nueva. */
   anadir(p: TrackPoint, seguir = true): void {
     const ll: L.LatLngTuple = [p.lat, p.lon];
-    this.linea.addLatLng(ll);
+    const seg = p.seg ?? 0;
+    if (this.tramos.length === 0 || seg !== this.segActual) {
+      this.tramos.push([]);
+      this.segActual = seg;
+    }
+    this.tramos[this.tramos.length - 1]!.push(ll);
+    this.linea.setLatLngs(this.tramos);
     this.posicion.setLatLng(ll).addTo(this.mapa);
     if (seguir) this.mapa.panTo(ll, { animate: false });
   }
 
+  /** Dibuja un recorrido ya terminado y encuadra el mapa en él. */
   dibujar(puntos: TrackPoint[]): void {
-    this.linea.setLatLngs(puntos.map((p) => [p.lat, p.lon] as L.LatLngTuple));
-    this.posicion.remove();
+    this.limpiar();
+    this.tramos = porTramos(puntos).map((t) => t.map((p) => [p.lat, p.lon] as L.LatLngTuple));
+    this.linea.setLatLngs(this.tramos);
     const b = this.linea.getBounds();
     if (b.isValid()) this.mapa.fitBounds(b, { padding: [30, 30] });
   }

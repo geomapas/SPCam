@@ -53,8 +53,8 @@ header {
   box-shadow: 0 2px 6px rgba(47,111,222,.4);
 }
 .logo-text { font-size: 24px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
-.logo-text .geo   { color: var(--blue); }
-.logo-text .resto { color: var(--text); }
+.logo-text .sp  { color: var(--blue); }   /* «SP» resaltado */
+.logo-text .cam { color: var(--text); }
 .logo-sub { font-size: 8px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-top: 2px; line-height: 1; }
 .header-sep { flex: 1; }
 
@@ -68,15 +68,26 @@ header {
 .status-pill.off .dot { animation: none; }
 @keyframes pulso { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
 
-.btn-cabecera {
-  display: flex; align-items: center; gap: 7px;
-  min-height: 36px; padding: 6px 12px; border-radius: 8px;
-  background: rgba(255,255,255,.75); border: 1.5px solid var(--border2);
-  color: var(--text2); font-size: 12px; font-weight: 700; cursor: pointer; transition: all .2s;
+/* Iconos de la cabecera (capas, recorrido) */
+.btn-icono {
+  position: relative; width: 42px; height: 42px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px; background: rgba(255,255,255,.75); border: 1.5px solid var(--border2);
+  color: var(--text2); cursor: pointer; transition: all .2s;
 }
-.btn-cabecera:hover { background: var(--blue-lt); border-color: var(--blue); color: var(--blue); }
-.btn-cabecera.active { background: var(--blue); border-color: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(47,111,222,.3); }
-.btn-cabecera[hidden] { display: none; }
+.btn-icono:hover { background: var(--blue-lt); border-color: var(--blue); color: var(--blue); }
+.btn-icono.active { background: var(--blue); border-color: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(47,111,222,.3); }
+.btn-icono[hidden] { display: none; }
+/* Grabando: icono rojo con punto que parpadea. En pausa: ámbar. */
+.btn-icono.grabando { background: #ffebee; border-color: var(--danger); color: var(--danger); }
+.btn-icono.grabando::after {
+  content: ''; position: absolute; top: 4px; right: 4px; width: 9px; height: 9px;
+  border-radius: 50%; background: var(--danger); animation: pulso 1.2s infinite;
+}
+.btn-icono.pausado { background: #fff4e0; border-color: #e08a00; color: #e08a00; }
+.btn-icono.grabando.active { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn-icono.grabando.active::after { background: #fff; }
+.btn-icono.pausado.active { background: #e08a00; border-color: #e08a00; color: #fff; }
 
 /* ── Mapa ── */
 .mapa-wrap { position: relative; flex: 1 1 auto; min-height: 200px; }
@@ -100,12 +111,12 @@ header {
 }
 
 /* ── Panel de capas ── */
-.panel-capas {
+.panel-flotante {
   position: absolute; top: 10px; left: 10px; right: 10px; max-width: 420px;
   max-height: calc(100% - 20px); z-index: 1100;
   display: flex; flex-direction: column; overflow: hidden;
 }
-.panel-capas[hidden] { display: none; }
+.panel-flotante[hidden] { display: none; }
 .pc-cab {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 12px 8px 14px; border-bottom: 1px solid rgba(220,225,232,.6); flex-shrink: 0;
@@ -193,3 +204,39 @@ ul.lista li {
   display: flex; gap: 8px; justify-content: space-between; align-items: center;
 }
 .carga-gpx { font-size: 12px; color: var(--text2); }
+
+/* Pantallas estrechas: la píldora de red queda solo como punto */
+@media (max-width: 380px) { .status-pill .txt { display: none; } .status-pill { padding: 6px; } }
+
+/* ── Panel del recorrido ── */
+.tk-estado { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; color: var(--text); }
+.tk-estado::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--border2); }
+.tk-estado.grabando { color: var(--danger); }
+.tk-estado.grabando::before { background: var(--danger); animation: pulso 1.2s infinite; }
+.tk-estado.pausado { color: #b86e00; }
+.tk-estado.pausado::before { background: #e08a00; }
+.tk-datos { font-size: 12px; color: var(--text2); margin: 4px 0 12px; line-height: 1.4; }
+.tk-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tk-botones.uno { grid-template-columns: 1fr; }
+.btn-grande {
+  min-height: var(--tap); padding: 10px 14px; border: 0; border-radius: 10px;
+  font-size: 14px; font-weight: 700; color: #fff; cursor: pointer; transition: filter .15s;
+}
+.btn-grande.azul  { background: var(--blue);   box-shadow: 0 2px 8px rgba(47,111,222,.3); }
+.btn-grande.rojo  { background: var(--danger); box-shadow: 0 2px 8px rgba(217,48,37,.3); }
+.btn-grande.ambar { background: #e08a00;       box-shadow: 0 2px 8px rgba(224,138,0,.3); }
+.btn-grande.gris  { background: var(--s3); color: var(--text2); border: 1.5px solid var(--border2); }
+.btn-grande:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+
+/* ── Avisos flotantes ── */
+#avisos-flotantes {
+  position: fixed; left: 10px; right: 10px; z-index: 1300;
+  top: calc(env(safe-area-inset-top, 0px) + var(--header-h) + 8px);
+  display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none;
+}
+.aviso-flot {
+  pointer-events: auto; max-width: 420px; width: 100%; padding: 10px 14px; border-radius: 10px;
+  background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border); box-shadow: var(--shadow); font-size: 13px; color: var(--text); cursor: pointer;
+}
+.aviso-flot.error { background: #ffebee; border-color: #ef9a9a; color: #7a1c14; }
