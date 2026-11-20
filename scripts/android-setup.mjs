@@ -50,7 +50,7 @@ let strings = readFileSync(stringsPath, 'utf8');
 const entradas = {
   capacitor_background_geolocation_notification_channel_name: 'Grabación de recorrido',
   capacitor_background_geolocation_notification_icon: 'drawable/ic_tracking',
-  capacitor_background_geolocation_notification_color: '#1B5E20',
+  capacitor_background_geolocation_notification_color: '#2F6FDE',
 };
 for (const [clave, valor] of Object.entries(entradas)) {
   if (!strings.includes(`name="${clave}"`)) {

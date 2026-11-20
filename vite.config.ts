@@ -43,12 +43,15 @@ export default defineConfig(({ mode }) => {
                 skipWaiting: true,
                 cleanupOutdatedCaches: true,
                 navigateFallback: 'index.html',
+                // La vista previa del técnico vive en /tecnico/ dentro del mismo sitio (GitHub Pages).
+                // Sin esto, el Service Worker del gestor serviría SU index.html también ahí.
+                navigateFallbackDenylist: [/\/tecnico\//],
               },
               manifest: {
                 name: 'GeoCampo · Gestor',
                 short_name: 'GeoCampo',
                 description: 'Consulta y gestión de datos de campo',
-                theme_color: '#1b5e20',
+                theme_color: '#2f6fde',
                 background_color: '#ffffff',
                 display: 'standalone',
                 start_url: '.',

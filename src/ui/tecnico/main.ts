@@ -1,21 +1,24 @@
-import '@/ui/shared/estilos.css';
-import { Capacitor } from '@capacitor/core';
-import { Share } from '@capacitor/share';
-import { db, pedirPersistencia } from '@/data/local/db';
-import { copiarACacheParaCompartir } from '@/data/files/trackFiles';
+import '@/ui/shared/tema';
+import { crearGestorCapas } from '@/domain/capas';
+import { puede } from '@/domain/permisos';
+import { compartirGpx, listarTracksFinalizados, pedirPersistencia } from '@/domain/tracks/repositorio';
 import { puntosDe, TrackRecorder } from '@/domain/tracks/trackRecorder';
 import type { TrackPoint, TrackRecord } from '@/domain/types';
+import { montarCabecera } from '@/ui/shared/cabecera';
 import { crearMapa, Traza } from '@/ui/shared/mapa';
+import { montarPanelCapas } from '@/ui/shared/panelCapas';
+
+const { botonCapas } = montarCabecera();
 
 const panel = document.getElementById('panel')!;
 panel.innerHTML = `
-  <div class="fila">
-    <button id="btn-inicio">Iniciar recorrido</button>
-    <button id="btn-parar" class="parar" disabled>Parar</button>
+  <div class="fila" id="fila-grabar">
+    <button id="btn-inicio" type="button">Iniciar recorrido</button>
+    <button id="btn-parar" type="button" disabled>Parar</button>
   </div>
   <div class="estado" id="estado">Listo.</div>
   <div id="avisos"></div>
-  <strong>Recorridos guardados</strong>
+  <div class="titulo-sec">Recorridos guardados</div>
   <ul class="lista" id="lista"></ul>
 `;
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -25,7 +28,8 @@ const estado = $('estado');
 const avisos = $('avisos');
 const lista = $('lista');
 
-const mapa = crearMapa($('mapa'));
+const app = crearMapa($('mapa'));
+const mapa = app.map;
 const traza = new Traza(mapa);
 let primerPunto = true;
 
@@ -79,21 +83,16 @@ btnParar.onclick = async () => {
 };
 
 async function compartir(reg: TrackRecord): Promise<void> {
-  if (!reg.gpxPath) return aviso('Este recorrido no tiene puntos.', 'error');
   try {
-    if (Capacitor.isNativePlatform()) {
-      const nombre = `recorrido-${reg.id}.gpx`;
-      await Share.share({ title: 'Recorrido GPX', url: await copiarACacheParaCompartir(reg.gpxPath, nombre) });
-    } else {
-      aviso('En el navegador no hay "compartir"; usa el móvil.', 'error');
-    }
+    const abierto = await compartirGpx(reg);
+    if (!abierto) aviso('En el navegador no hay "compartir"; usa el móvil.', 'error');
   } catch (e) {
     aviso(`No se pudo compartir: ${e instanceof Error ? e.message : String(e)}`, 'error');
   }
 }
 
 async function pintarLista(): Promise<void> {
-  const todos = (await db.tracks.orderBy('startedAt').reverse().toArray()).filter((t) => t.status === 'finalizado');
+  const todos = await listarTracksFinalizados();
   lista.innerHTML = '';
   if (todos.length === 0) {
     lista.innerHTML = '<li>Aún no hay recorridos.</li>';
@@ -104,10 +103,12 @@ async function pintarLista(): Promise<void> {
     const info = document.createElement('span');
     info.textContent = `${new Date(reg.startedAt).toLocaleString('es-ES')} · ${reg.pointCount} pts · ${km(reg.lengthM)}${reg.recuperado ? ' · recuperado' : ''}`;
     const ver = document.createElement('button');
+    ver.type = 'button';
     ver.className = 'sec';
     ver.textContent = 'Ver';
     ver.onclick = async () => traza.dibujar(await puntosDe(reg));
     const comp = document.createElement('button');
+    comp.type = 'button';
     comp.className = 'sec';
     comp.textContent = 'GPX';
     comp.onclick = () => void compartir(reg);
@@ -120,6 +121,13 @@ async function pintarLista(): Promise<void> {
 }
 
 async function arrancar(): Promise<void> {
+  if (!puede('grabar_recorridos')) $('fila-grabar').hidden = true;
+
+  // Mapa base y capas temáticas (preferencias guardadas en el dispositivo)
+  const gestor = await crearGestorCapas();
+  app.conectar(gestor);
+  montarPanelCapas({ gestor, boton: botonCapas, contenedor: document.querySelector<HTMLElement>('.mapa-wrap')! });
+
   await pedirPersistencia();
   const recuperados = await grabador.recuperarPendientes();
   if (recuperados.length > 0) {

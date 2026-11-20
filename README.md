@@ -13,21 +13,37 @@ Un repositorio, dos destinos de build:
 src/
   config.ts            ajustes del GPS (distancia, precisión, textos de notificación)
   data/                ← único sitio que habla con almacenamiento/plugins (luego, Firebase)
-    local/db.ts          Dexie (IndexedDB) con esquema versionado
-    files/trackFiles.ts  archivos en el dispositivo (Capacitor Filesystem)
+    local/db.ts          Dexie (IndexedDB), esquema versionado (v1 tracks, v2 preferencias)
+    local/preferencias.ts  preferencias del mapa guardadas en el dispositivo
+    files/               archivos del dispositivo (Filesystem) y compartir
     gps/backgroundGps.ts GPS en segundo plano (plugin) + alternativa de navegador para desarrollo
   domain/              ← reglas del negocio, sin DOM ni plugins
+    permisos.ts          puertas de permisos: puede('...'); hoy todo abierto
+    capas/               catálogo de mapas base y capas temáticas (DATOS) + estado activo
+    tracks/              grabación incremental + recuperación, GPX, geo, repositorio
     types.ts
-    tracks/              trackRecorder (grabación incremental + recuperación), gpx, geo
   ui/                  ← pantallas; solo importan de domain
     tecnico/             index.html + main.ts (app Android)
     gestor/              index.html + main.ts (web del gestor)
-    shared/              mapa Leaflet y estilos
+    shared/              tema (estilos.css), cabecera, mapa Leaflet, panel de capas
 scripts/android-setup.mjs   permisos, icono y textos de la notificación (idempotente)
 ```
 
 Regla: `ui → domain → data`. La interfaz nunca toca Firebase ni plugins directamente.
 Cuando llegue Firebase, entra solo en `src/data/`.
+
+## Aspecto y capas
+
+- **Estética:** copiada de GEOmapas (cristal translúcido, azul `#2f6fde`, DM Sans, esquinas de 12 px).
+  Todos los valores de diseño están al principio de `src/ui/shared/estilos.css`: cambia uno y cambia toda la app.
+  La tipografía va empaquetada (funciona sin conexión).
+- **Botón «Capas»** de la cabecera: abre el panel «Cartografía y capas» con el selector de **mapa base**
+  (Ortofoto / Topográfico) y las **capas temáticas** (Recintos SIGPAC, Cultivo declarado).
+- **Añadir o quitar una capa** = editar `src/domain/capas/catalogo.ts`. Lo elegido se guarda en el dispositivo.
+- **Permisos:** `src/domain/permisos.ts` tiene la lista de permisos. Cada función nueva se añade ahí
+  con «sí» para todos los perfiles; se ajusta al final.
+- Todas estas capas **necesitan conexión**. El mapa sin cobertura llega con la descarga de zonas (paso 6).
+  Antes de guardar teselas de cualquier fuente hay que comprobar sus condiciones de uso.
 
 ## Cómo funciona la grabación
 
@@ -112,4 +128,4 @@ habría que probar a añadir.
 ## Qué NO hace todavía (pasos siguientes del plan)
 
 Autenticación, Firestore/Storage, cola de envío, formularios, fotos, mapas offline, reglas de seguridad,
-y funciones del gestor. El mapa base es OpenStreetMap **solo de prueba** (necesita red).
+y funciones del gestor. El mapa base «Topográfico» es OpenStreetMap, provisional.
