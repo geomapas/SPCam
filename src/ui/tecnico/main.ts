@@ -1,5 +1,5 @@
 import '@/ui/shared/tema';
-import { crearGestorCapas } from '@/domain/capas';
+import { crearGestorCapas, crearGestorProyecto } from '@/domain/capas';
 import { pedirPersistencia } from '@/domain/tracks/repositorio';
 import { TrackRecorder } from '@/domain/tracks/trackRecorder';
 import { montarCabecera } from '@/ui/shared/cabecera';
@@ -36,9 +36,16 @@ if (botonTrack) montarPanelTrack({ boton: botonTrack, contenedor, grabador, traz
 
 async function arrancar(): Promise<void> {
   // Mapa base y capas temáticas (preferencias guardadas en el dispositivo)
-  const gestor = await crearGestorCapas();
+  const [gestor, proyecto] = await Promise.all([crearGestorCapas(), crearGestorProyecto()]);
   app.conectar(gestor);
-  montarPanelCapas({ gestor, boton: botonCapas, contenedor });
+  app.conectarProyecto(proyecto);
+  montarPanelCapas({
+    gestor,
+    proyecto,
+    boton: botonCapas,
+    contenedor,
+    alZoom: (id) => void app.zoomACapa(id),
+  });
 
   await pedirPersistencia();
   const recuperados = await grabador.recuperarPendientes();

@@ -9,18 +9,31 @@ export interface Almacen {
 
 export interface EstadoCapas {
   base: string;
+  /** Capas precargadas con el interruptor encendido */
   activas: string[];
+  /** Capas precargadas que el usuario ha elegido tener en su lista (rueda de ajustes) */
+  enPanel: string[];
+  /** Lo que realmente se dibuja: encendidas Y elegidas en la lista */
+  enMapa: string[];
 }
 
 const CLAVE_BASE = 'mapa.base';
 const CLAVE_ACTIVAS = 'mapa.capasActivas';
+const CLAVE_EN_PANEL = 'mapa.capasEnPanel';
 
-/** Estado de qué mapa base y qué capas temáticas están activos. No sabe nada de Leaflet. */
+const idsValidos = (a: unknown): string[] | null =>
+  Array.isArray(a)
+    ? a.filter((id): id is string => typeof id === 'string' && CAPAS_TEMATICAS.some((c) => c.id === id))
+    : null;
+
+/** Estado de mapa base y capas precargadas (cuáles se ofrecen y cuáles se ven). No sabe nada de Leaflet. */
 export class GestorCapas {
   private base = BASE_POR_DEFECTO;
   private activas = new Set<string>(
     CAPAS_TEMATICAS.filter((c) => c.visiblePorDefecto).map((c) => c.id),
   );
+  /** Por defecto se ofrecen todas las precargadas. */
+  private enPanel = new Set<string>(CAPAS_TEMATICAS.map((c) => c.id));
   private oyentes = new Set<(e: EstadoCapas) => void>();
 
   constructor(private readonly almacen: Almacen) {}
@@ -30,21 +43,23 @@ export class GestorCapas {
     try {
       const b = await this.almacen.leer(CLAVE_BASE);
       if (typeof b === 'string' && MAPAS_BASE.some((m) => m.id === b)) this.base = b;
-
-      const a = await this.almacen.leer(CLAVE_ACTIVAS);
-      if (Array.isArray(a)) {
-        const validas = a.filter(
-          (id): id is string => typeof id === 'string' && CAPAS_TEMATICAS.some((c) => c.id === id),
-        );
-        this.activas = new Set(validas);
-      }
+      const a = idsValidos(await this.almacen.leer(CLAVE_ACTIVAS));
+      if (a) this.activas = new Set(a);
+      const p = idsValidos(await this.almacen.leer(CLAVE_EN_PANEL));
+      if (p) this.enPanel = new Set(p);
     } catch (e) {
       console.warn('No se pudieron leer las preferencias del mapa', e);
     }
   }
 
   get estado(): EstadoCapas {
-    return { base: this.base, activas: [...this.activas] };
+    const activas = [...this.activas];
+    return {
+      base: this.base,
+      activas,
+      enPanel: [...this.enPanel],
+      enMapa: activas.filter((id) => this.enPanel.has(id)),
+    };
   }
 
   suscribir(fn: (e: EstadoCapas) => void): () => void {
@@ -71,6 +86,18 @@ export class GestorCapas {
     return true;
   }
 
+  /** Elige si una capa precargada aparece en la lista (y, por tanto, puede verse en el mapa). */
+  alternarEnPanel(id: string, enLista?: boolean): boolean {
+    if (!puede('configurar_capas_precargadas')) return false;
+    if (!CAPAS_TEMATICAS.some((c) => c.id === id)) return false;
+    const quiere = enLista ?? !this.enPanel.has(id);
+    if (quiere === this.enPanel.has(id)) return false;
+    if (quiere) this.enPanel.add(id);
+    else this.enPanel.delete(id);
+    this.avisarYGuardar();
+    return true;
+  }
+
   private avisarYGuardar(): void {
     const e = this.estado;
     this.oyentes.forEach((fn) => fn(e));
@@ -78,6 +105,7 @@ export class GestorCapas {
     void Promise.all([
       this.almacen.guardar(CLAVE_BASE, e.base),
       this.almacen.guardar(CLAVE_ACTIVAS, e.activas),
+      this.almacen.guardar(CLAVE_EN_PANEL, e.enPanel),
     ]).catch((err) => console.warn('No se pudieron guardar las preferencias del mapa', err));
   }
 }

@@ -43,7 +43,6 @@ export interface MapaBase {
 export interface CapaTematica {
   id: string;
   nombre: string;
-  descripcion: string;
   /** color de la muestra junto al nombre */
   color: string;
   visiblePorDefecto: boolean;
@@ -86,11 +85,11 @@ export const MAPAS_BASE: readonly MapaBase[] = [
 
 export const BASE_POR_DEFECTO = 'ortofoto';
 
+/** Capas precargadas. Por ahora solo los recintos SIGPAC; para añadir otra, basta una entrada más aquí. */
 export const CAPAS_TEMATICAS: readonly CapaTematica[] = [
   {
     id: 'recintos',
     nombre: 'Recintos SIGPAC',
-    descripcion: 'Desde zoom 14 · requiere conexión',
     color: '#ff00ff',
     visiblePorDefecto: true,
     fuente: {
@@ -106,26 +105,6 @@ export const CAPAS_TEMATICAS: readonly CapaTematica[] = [
       maxNativeZoom: 20,
       claseCss: 'capa-recintos',
       atribucion: 'SIGPAC · Junta de Comunidades de Castilla-La Mancha',
-    },
-  },
-  {
-    id: 'cultivo',
-    nombre: 'Cultivo declarado',
-    descripcion: 'Requiere conexión',
-    color: '#1e8a4c',
-    visiblePorDefecto: false,
-    fuente: {
-      tipo: 'wms',
-      url: 'https://sigpac-hubcloud.es/wms',
-      capas: 'cultivo_declarado',
-      formato: 'image/png',
-      transparente: true,
-      version: '1.3.0',
-      mayusculas: false,
-      maxZoom: 21,
-      maxNativeZoom: 20,
-      claseCss: 'capa-cultivo',
-      atribucion: 'SIGPAC Hubcloud',
     },
   },
 ];

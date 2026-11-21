@@ -1,5 +1,5 @@
 import '@/ui/shared/tema';
-import { crearGestorCapas } from '@/domain/capas';
+import { crearGestorCapas, crearGestorProyecto } from '@/domain/capas';
 import { longitudM } from '@/domain/tracks/geo';
 import { leerGpx } from '@/domain/tracks/gpx';
 import { montarCabecera } from '@/ui/shared/cabecera';
@@ -12,9 +12,16 @@ const app = crearMapa(document.getElementById('mapa')!);
 const traza = new Traza(app.map);
 const estado = document.getElementById('estado')!;
 
-void crearGestorCapas().then((gestor) => {
+void Promise.all([crearGestorCapas(), crearGestorProyecto()]).then(([gestor, proyecto]) => {
   app.conectar(gestor);
-  montarPanelCapas({ gestor, boton: botonCapas, contenedor });
+  app.conectarProyecto(proyecto);
+  montarPanelCapas({
+    gestor,
+    proyecto,
+    boton: botonCapas,
+    contenedor,
+    alZoom: (id) => void app.zoomACapa(id),
+  });
 });
 
 document.getElementById('archivo')!.addEventListener('change', async (ev) => {

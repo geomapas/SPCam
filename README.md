@@ -13,13 +13,15 @@ Un repositorio, dos destinos de build:
 src/
   config.ts            ajustes del GPS (distancia, precisión, textos de notificación)
   data/                ← único sitio que habla con almacenamiento/plugins (luego, Firebase)
-    local/db.ts          Dexie (IndexedDB), esquema versionado (v1 tracks, v2 preferencias)
+    local/db.ts          Dexie (IndexedDB), esquema versionado (v1 tracks, v2 preferencias, v3 capas del proyecto)
     local/preferencias.ts  preferencias del mapa guardadas en el dispositivo
+    local/capasProyecto.ts capas del proyecto guardadas en el dispositivo
+    files/importarCapa.ts  lectura de SHP, GeoJSON y KML
     files/               archivos del dispositivo (Filesystem) y compartir
     gps/backgroundGps.ts GPS en segundo plano (plugin) + alternativa de navegador para desarrollo
   domain/              ← reglas del negocio, sin DOM ni plugins
     permisos.ts          puertas de permisos: puede('...'); hoy todo abierto
-    capas/               catálogo de mapas base y capas temáticas (DATOS) + estado activo
+    capas/               catálogo de mapas base y capas precargadas (DATOS), estado activo y capas del proyecto
     tracks/              grabación incremental + recuperación, GPX, geo, repositorio
     types.ts
   ui/                  ← pantallas; solo importan de domain
@@ -37,12 +39,20 @@ Cuando llegue Firebase, entra solo en `src/data/`.
 - **Estética:** copiada de GEOmapas (cristal translúcido, azul `#2f6fde`, DM Sans, esquinas de 12 px).
   Todos los valores de diseño están al principio de `src/ui/shared/estilos.css`: cambia uno y cambia toda la app.
   La tipografía va empaquetada (funciona sin conexión).
-- **Botón «Capas»** de la cabecera: abre el panel «Cartografía y capas» con el selector de **mapa base**
-  (Ortofoto / Topográfico) y las **capas temáticas** (Recintos SIGPAC, Cultivo declarado).
-- **Añadir o quitar una capa** = editar `src/domain/capas/catalogo.ts`. Lo elegido se guarda en el dispositivo.
+- **Icono «Capas»** de la cabecera: abre el panel «Cartografía y capas», con tres secciones:
+  1. **Mapa base** (Ortofoto / Topográfico).
+  2. **Capas temáticas:** las precargadas (por ahora Recintos SIGPAC), con interruptor. La **rueda de ajustes**
+     permite elegir cuáles de las precargadas se ofrecen en la lista; una capa quitada de la lista tampoco se ve en el mapa.
+  3. **Capas del proyecto:** archivos que carga el usuario (**SHP** en .zip o .shp + .dbf + .prj, **GeoJSON** y **KML**).
+     Cada capa tiene interruptor de visibilidad, color, «ir a la capa» (tocar el nombre) y eliminar (con confirmación).
+     Al tocar un elemento en el mapa salen sus atributos.
+- Las capas del proyecto se **guardan en el dispositivo** (funcionan sin conexión) y NO se sincronizan todavía con Firebase.
+  Eliminar una capa la borra de ese dispositivo y no se puede deshacer.
+- Un SHP sin `.prj` solo se admite si ya está en grados (WGS84); si no, la carga avisa de que falta el `.prj`.
+- **Añadir o quitar una capa precargada** = editar `src/domain/capas/catalogo.ts`. Lo elegido se guarda en el dispositivo.
 - **Permisos:** `src/domain/permisos.ts` tiene la lista de permisos. Cada función nueva se añade ahí
   con «sí» para todos los perfiles; se ajusta al final.
-- Todas estas capas **necesitan conexión**. El mapa sin cobertura llega con la descarga de zonas (paso 6).
+- Las capas WMS **necesitan conexión**. El mapa sin cobertura llega con la descarga de zonas (paso 6).
   Antes de guardar teselas de cualquier fuente hay que comprobar sus condiciones de uso.
 
 ## Cómo funciona la grabación
