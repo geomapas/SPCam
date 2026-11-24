@@ -17,6 +17,7 @@ src/
     local/preferencias.ts  preferencias del mapa guardadas en el dispositivo
     local/capasProyecto.ts capas del proyecto guardadas en el dispositivo
     files/importarCapa.ts  lectura de SHP, GeoJSON y KML
+    files/exportarCapa.ts  escritura de KML, SHP (zip) y XLSX
     files/               archivos del dispositivo (Filesystem) y compartir
     gps/backgroundGps.ts GPS en segundo plano (plugin) + alternativa de navegador para desarrollo
   domain/              ← reglas del negocio, sin DOM ni plugins
@@ -44,10 +45,20 @@ Cuando llegue Firebase, entra solo en `src/data/`.
   2. **Capas temáticas:** las precargadas (por ahora Recintos SIGPAC), con interruptor. La **rueda de ajustes**
      permite elegir cuáles de las precargadas se ofrecen en la lista; una capa quitada de la lista tampoco se ve en el mapa.
   3. **Capas del proyecto:** archivos que carga el usuario (**SHP** en .zip o .shp + .dbf + .prj, **GeoJSON** y **KML**).
-     Cada capa tiene interruptor de visibilidad, color, «ir a la capa» (tocar el nombre) y eliminar (con confirmación).
+     Cada capa tiene: interruptor de visibilidad, punto de color (cambio rápido del borde), «ir a la capa» (tocar el nombre),
+     **editar** (nombre, color del borde y color del relleno), **descargar / compartir** y **quitar del panel**.
      Al tocar un elemento en el mapa salen sus atributos.
-- Las capas del proyecto se **guardan en el dispositivo** (funcionan sin conexión) y NO se sincronizan todavía con Firebase.
-  Eliminar una capa la borra de ese dispositivo y no se puede deshacer.
+     - **De lejos se ven como pinpoints** (una chincheta por elemento) y **desde el zoom 14 como geometrías**, igual que GEOmapas
+       (`UMBRAL_PINS_ZOOM` en `src/config.ts`). En capas de más de 3000 elementos los pines son puntos sueltos, más ligeros.
+     - **Descargar / compartir:** KML, SHP (zip; una capa con geometrías mezcladas se divide en un shapefile por tipo) y XLSX (tabla de atributos).
+       En el móvil abre «compartir» (Drive, WhatsApp, Archivos…); en el navegador descarga directamente.
+       **Sync** sube la capa a la nube; **Enviar** la comparte con otro usuario por correo. Ambos necesitan Firebase y hoy avisan de que la nube no está conectada.
+       No hay modo colaborativo ni enlace.
+     - **Quitar del panel no borra:** la capa sigue guardada en el dispositivo. **Añadir capa** abre un buscador de capas guardadas
+       (en el dispositivo y, cuando exista, en la nube) para volver a ponerlas; desde ahí también se puede eliminar para siempre
+       (con confirmación) o **cargar un archivo nuevo**.
+- Las capas del proyecto se **guardan en el dispositivo** (funcionan sin conexión). La interfaz de la nube (`src/domain/capas/nube.ts`)
+  ya está definida; la implementación con Firebase llega con el inicio de sesión (pasos 3 y 5 del plan).
 - Un SHP sin `.prj` solo se admite si ya está en grados (WGS84); si no, la carga avisa de que falta el `.prj`.
 - **Añadir o quitar una capa precargada** = editar `src/domain/capas/catalogo.ts`. Lo elegido se guarda en el dispositivo.
 - **Permisos:** `src/domain/permisos.ts` tiene la lista de permisos. Cada función nueva se añade ahí

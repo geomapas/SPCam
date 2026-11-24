@@ -19,7 +19,10 @@ export async function crearGestorProyecto(): Promise<GestorProyecto> {
 
 export { GestorCapas } from './gestorCapas';
 export type { EstadoCapas } from './gestorCapas';
-export { GestorProyecto, PALETA } from './proyecto';
+export { GestorProyecto, PALETA, colorRelleno } from './proyecto';
 export type { CapaProyecto } from './proyecto';
+export { NubeNoDisponible } from './nube';
+export type { FichaNube } from './nube';
+export type { FormatoExport } from '@/data/files/exportarCapa';
 export { CAPAS_TEMATICAS, MAPAS_BASE } from './catalogo';
 export type { CapaTematica, Fuente, MapaBase } from './catalogo';

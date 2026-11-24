@@ -1,6 +1,7 @@
 import {
   CAPAS_TEMATICAS,
   MAPAS_BASE,
+  colorRelleno,
   type CapaProyecto,
   type EstadoCapas,
   type GestorCapas,
@@ -8,8 +9,20 @@ import {
 } from '@/domain/capas';
 import { puede } from '@/domain/permisos';
 import { mostrarAviso } from './aviso';
-import { iconoAjustes, iconoCapas, iconoCerrar, iconoMapa, iconoMas, iconoSatelite } from './iconos';
+import {
+  iconoAjustes,
+  iconoCapas,
+  iconoCerrar,
+  iconoCompartir,
+  iconoLapiz,
+  iconoMapa,
+  iconoMas,
+  iconoNube,
+  iconoNubeOff,
+  iconoSatelite,
+} from './iconos';
 import { abrirModal } from './modal';
+import { abrirAnadirCapa, abrirCompartirCapa, abrirEditorCapa } from './modalesCapa';
 import { crearPanelFlotante } from './panelFlotante';
 
 const ICONOS = { satelite: iconoSatelite, mapa: iconoMapa } as const;
@@ -131,20 +144,16 @@ export function montarPanelCapas(opts: {
     lista.className = 'proy-lista';
     sec.append(lista);
 
-    const selector = document.createElement('input');
-    selector.type = 'file';
-    selector.multiple = true;
-    selector.hidden = true; // sin "accept": en Android los .shp/.dbf/.kml no se reconocen y salen en gris
     const anadir = document.createElement('button');
     anadir.type = 'button';
     anadir.className = 'btn-anadir';
     anadir.innerHTML = `${iconoMas(16)}<span>Añadir capa</span>`;
     anadir.hidden = !puede('anadir_capas_proyecto');
-    anadir.addEventListener('click', () => selector.click());
-    selector.addEventListener('change', async () => {
-      const archivos = [...(selector.files ?? [])];
-      selector.value = '';
-      if (archivos.length === 0) return;
+    sec.append(anadir);
+    cuerpo.append(sec);
+
+    /** Carga archivos nuevos (SHP, GeoJSON, KML) y encuadra el mapa en la última capa añadida. */
+    const cargarArchivos = async (archivos: File[]): Promise<void> => {
       anadir.disabled = true;
       anadir.classList.add('cargando');
       anadir.lastElementChild!.textContent = 'Procesando…';
@@ -168,16 +177,38 @@ export function montarPanelCapas(opts: {
         anadir.classList.remove('cargando');
         anadir.lastElementChild!.textContent = 'Añadir capa';
       }
-    });
-    sec.append(anadir, selector);
-    cuerpo.append(sec);
+    };
 
-    let confirmando: string | null = null;
+    // «Añadir capa» busca entre las capas guardadas (dispositivo y nube); desde ahí también se puede cargar un archivo.
+    anadir.addEventListener('click', () =>
+      abrirAnadirCapa(proyecto, {
+        alElegir: (id) => {
+          panel.cerrar();
+          alZoom(id);
+        },
+        alCargarArchivos: cargarArchivos,
+      }),
+    );
 
-    const filaNormal = (c: CapaProyecto): HTMLElement => {
-      const fila = document.createElement('div');
-      fila.className = 'proy-row';
+    const icono = (clase: string, titulo: string, svg: string, alPulsar: () => void, oculto = false): HTMLButtonElement => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = clase;
+      b.title = titulo;
+      b.setAttribute('aria-label', titulo);
+      b.innerHTML = svg;
+      b.hidden = oculto;
+      b.addEventListener('click', alPulsar);
+      return b;
+    };
 
+    const fila = (c: CapaProyecto): HTMLElement => {
+      const f = document.createElement('div');
+      f.className = 'proy-row';
+
+      // Primera línea: visibilidad, nombre y color (cambio rápido del borde)
+      const cab = document.createElement('div');
+      cab.className = 'proy-cab';
       const sw = document.createElement('label');
       sw.className = 'switch';
       const input = document.createElement('input');
@@ -207,77 +238,62 @@ export function montarPanelCapas(opts: {
 
       const punto = document.createElement('label');
       punto.className = 'color-dot';
-      punto.style.background = c.color;
-      punto.title = 'Cambiar color';
+      punto.style.background = colorRelleno(c);
+      punto.style.boxShadow = `0 0 0 2.5px ${c.color}`;
+      punto.title = 'Cambiar el color del borde';
       const color = document.createElement('input');
       color.type = 'color';
       color.value = c.color;
-      color.setAttribute('aria-label', `Color de ${c.nombre}`);
+      color.setAttribute('aria-label', `Color del borde de ${c.nombre}`);
       color.addEventListener('change', () => proyecto.cambiarColor(c.id, color.value));
       punto.append(color);
+      cab.append(sw, nombre, punto);
 
-      const borrar = document.createElement('button');
-      borrar.type = 'button';
-      borrar.className = 'proy-borrar';
-      borrar.setAttribute('aria-label', `Eliminar ${c.nombre}`);
-      borrar.title = 'Eliminar';
-      borrar.innerHTML = iconoCerrar(16);
-      borrar.hidden = !puede('eliminar_capas_proyecto');
-      borrar.addEventListener('click', () => {
-        confirmando = c.id;
-        pintarProyecto();
-      });
-
-      fila.append(sw, nombre, punto, borrar);
-      return fila;
-    };
-
-    const filaConfirmar = (c: CapaProyecto): HTMLElement => {
-      const fila = document.createElement('div');
-      fila.className = 'proy-row confirmar';
-      const txt = document.createElement('span');
-      txt.className = 'proy-confirmar-txt';
-      txt.textContent = `¿Eliminar «${c.nombre}»? No se puede deshacer.`;
-      const cancelar = document.createElement('button');
-      cancelar.type = 'button';
-      cancelar.className = 'btn-grande gris';
-      cancelar.textContent = 'Cancelar';
-      cancelar.addEventListener('click', () => {
-        confirmando = null;
-        pintarProyecto();
-      });
-      const si = document.createElement('button');
-      si.type = 'button';
-      si.className = 'btn-grande rojo';
-      si.textContent = 'Eliminar';
-      si.addEventListener('click', async () => {
-        si.disabled = cancelar.disabled = true;
-        try {
-          await proyecto.eliminar(c.id);
-        } catch (e) {
-          mostrarAviso(`No se pudo eliminar: ${e instanceof Error ? e.message : String(e)}`, 'error');
-        }
-        confirmando = null;
-        pintarProyecto();
-      });
-      const botones = document.createElement('div');
-      botones.className = 'tk-botones';
-      botones.append(cancelar, si);
-      fila.append(txt, botones);
-      return fila;
+      // Segunda línea: nube, editar, descargar/compartir y quitar del panel
+      const acciones = document.createElement('div');
+      acciones.className = 'proy-acciones';
+      const sincronizada = c.sincronizadaEn !== undefined;
+      const nube = document.createElement('span');
+      nube.className = `proy-nube${sincronizada ? ' ok' : ''}`;
+      nube.title = sincronizada ? 'Guardada en la nube' : 'Solo en este dispositivo';
+      nube.innerHTML = sincronizada ? iconoNube(16) : iconoNubeOff(16);
+      acciones.append(
+        nube,
+        icono('proy-btn', 'Editar capa', iconoLapiz(16), () => abrirEditorCapa(c, proyecto), !puede('editar_capas_proyecto')),
+        icono(
+          'proy-btn',
+          'Descargar / compartir',
+          iconoCompartir(16),
+          () => abrirCompartirCapa(c, proyecto),
+          !puede('descargar_capas_proyecto') && !puede('compartir_capas_proyecto') && !puede('sincronizar_capas_proyecto'),
+        ),
+        icono(
+          'proy-btn proy-quitar',
+          'Quitar del panel',
+          iconoCerrar(16),
+          () => {
+            proyecto.quitarDelPanel(c.id);
+            mostrarAviso(`«${c.nombre}» quitada del panel. Sigue guardada: recupérala con «Añadir capa».`);
+          },
+          !puede('eliminar_capas_proyecto'),
+        ),
+      );
+      f.append(cab, acciones);
+      return f;
     };
 
     pintarProyecto = () => {
-      contador.textContent = String(proyecto.capas.length);
+      const capas = proyecto.capasEnPanel;
+      contador.textContent = String(capas.length);
       lista.replaceChildren();
-      if (proyecto.capas.length === 0) {
+      if (capas.length === 0) {
         const vacio = document.createElement('div');
         vacio.className = 'proy-vacio';
         vacio.textContent = 'No hay capas del proyecto.';
         lista.append(vacio);
         return;
       }
-      for (const c of proyecto.capas) lista.append(c.id === confirmando ? filaConfirmar(c) : filaNormal(c));
+      for (const c of capas) lista.append(fila(c));
     };
     proyecto.suscribir(pintarProyecto);
     pintarProyecto();
@@ -343,6 +359,6 @@ function abrirSelectorPrecargadas(gestor: GestorCapas): void {
   });
 
   contenido.append(buscar, lista);
-  abrirModal({ titulo: 'Capas precargadas', contenido });
+  void abrirModal({ titulo: 'Capas precargadas', contenido });
   buscar.focus();
 }

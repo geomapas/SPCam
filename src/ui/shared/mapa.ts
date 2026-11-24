@@ -4,11 +4,14 @@ import 'leaflet/dist/leaflet.css';
 import {
   CAPAS_TEMATICAS,
   MAPAS_BASE,
+  colorRelleno,
+  type CapaProyecto,
   type EstadoCapas,
   type Fuente,
   type GestorCapas,
   type GestorProyecto,
 } from '@/domain/capas';
+import { LIMITE_PINES_ICONO, OPACIDAD_RELLENO, UMBRAL_PINS_ZOOM } from '@/config';
 import { porTramos } from '@/domain/tracks/geo';
 import type { TrackPoint } from '@/domain/types';
 import { mostrarAviso } from './aviso';
@@ -40,11 +43,53 @@ function crearCapaLeaflet(f: Fuente, zIndex: number): L.TileLayer {
 
 const esPunto = (f?: Feature) => f?.geometry?.type === 'Point' || f?.geometry?.type === 'MultiPoint';
 
-/** Estilo de una capa del proyecto: relleno suave en polígonos, trazo en líneas, círculo blanco en puntos. */
-const estiloCapa = (color: string) => (f?: Feature): L.PathOptions & { radius?: number } =>
+/** Estilo de una capa del proyecto: borde y relleno propios (relleno suave en polígonos) y círculo blanco en puntos. */
+const estiloCapa = (color: string, relleno: string) => (f?: Feature): L.PathOptions & { radius?: number } =>
   esPunto(f)
-    ? { radius: 6, color: '#ffffff', weight: 1.5, fillColor: color, fillOpacity: 0.9 }
-    : { color, weight: 2, opacity: 0.95, fillColor: color, fillOpacity: 0.25 };
+    ? { radius: 6, color: '#ffffff', weight: 1.5, fillColor: relleno, fillOpacity: 0.9 }
+    : { color, weight: 2, opacity: 0.95, fillColor: relleno, fillOpacity: OPACIDAD_RELLENO };
+
+/** Chincheta de GEOmapas (misma forma), con el color de la capa. */
+const iconoPin = (color: string) =>
+  L.divIcon({
+    html: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="30" viewBox="0 0 22 30"><path d="M11 0C4.925 0 0 4.925 0 11c0 7.333 11 19 11 19s11-11.667 11-19C22 4.925 17.075 0 11 0z" fill="${color}" stroke="white" stroke-width="1.5"/><circle cx="11" cy="11" r="4.5" fill="white" opacity="0.85"/></svg>`,
+    className: '',
+    iconSize: [22, 30],
+    iconAnchor: [11, 30],
+    popupAnchor: [0, -30],
+  });
+
+/** Punto donde se coloca el pin de un elemento: centro del polígono, medio de la línea o el propio punto. */
+function centroide(f: Feature): L.LatLngTuple | null {
+  const g = f.geometry;
+  if (!g) return null;
+  const media = (pts: number[][]): L.LatLngTuple | null =>
+    pts.length ? [pts.reduce((s, p) => s + p[1]!, 0) / pts.length, pts.reduce((s, p) => s + p[0]!, 0) / pts.length] : null;
+  const centroAnillo = (anillo: number[][]): L.LatLngTuple | null => {
+    let a = 0, cx = 0, cy = 0;
+    for (let i = 0; i < anillo.length - 1; i++) {
+      const [x0, y0] = anillo[i]!, [x1, y1] = anillo[i + 1]!;
+      const k = x0! * y1! - x1! * y0!;
+      a += k;
+      cx += (x0! + x1!) * k;
+      cy += (y0! + y1!) * k;
+    }
+    return Math.abs(a) < 1e-14 ? media(anillo) : [cy / (3 * a), cx / (3 * a)];
+  };
+  switch (g.type) {
+    case 'Point': return [g.coordinates[1]!, g.coordinates[0]!];
+    case 'MultiPoint': return media(g.coordinates);
+    case 'LineString': return media([g.coordinates[Math.floor(g.coordinates.length / 2)]!]);
+    case 'MultiLineString': return media(g.coordinates.flat());
+    case 'Polygon': return centroAnillo(g.coordinates[0]!);
+    case 'MultiPolygon': {
+      // el polígono con más vértices en su anillo exterior
+      const mayor = [...g.coordinates].sort((p, q) => q[0]!.length - p[0]!.length)[0]!;
+      return centroAnillo(mayor[0]!);
+    }
+    default: return null;
+  }
+}
 
 /** Ventana con los atributos del elemento tocado (sin los campos internos __*). */
 function contenidoPopup(nombreCapa: string, props: Record<string, unknown> | null | undefined): HTMLElement {
@@ -86,8 +131,12 @@ export interface MapaApp {
 }
 
 interface EntradaProyecto {
-  layer: L.GeoJSON | null;
+  /** Geometrías (se ven de cerca) */
+  vector: L.GeoJSON | null;
+  /** Pinpoints (se ven de lejos) */
+  pines: L.FeatureGroup | null;
   color: string;
+  relleno: string;
   cargando: boolean;
 }
 
@@ -134,73 +183,109 @@ export function crearMapa(contenedor: HTMLElement): MapaApp {
   const entradas = new Map<string, EntradaProyecto>();
   let proyecto: GestorProyecto | null = null;
 
-  const crearGeoJson = (datos: FeatureCollection, color: string, nombre: string): L.GeoJSON => {
+  const alTocar = (nombre: string) => (ev: L.LeafletMouseEvent & { layer?: L.Layer }) => {
+    const feature = (ev.layer as (L.Layer & { feature?: Feature }) | undefined)?.feature;
+    if (!feature) return;
+    L.popup({ maxWidth: 320 }).setLatLng(ev.latlng).setContent(contenidoPopup(nombre, feature.properties)).openOn(map);
+  };
+
+  const crearVector = (datos: FeatureCollection, c: CapaProyecto): L.GeoJSON => {
     // Leaflet pasa estas opciones a cada geometría; los tipos no declaran `renderer` aquí, de ahí el cast.
     const opciones = {
       renderer: lienzo,
-      style: estiloCapa(color),
+      style: estiloCapa(c.color, colorRelleno(c)),
       pointToLayer: (_f: Feature, ll: L.LatLng) => L.circleMarker(ll, { renderer: lienzo, radius: 6 }),
     } as L.GeoJSONOptions;
     const capa = L.geoJSON(datos, opciones);
-    // Un solo manejador de clic para toda la capa (no uno por geometría).
-    capa.on('click', (ev: L.LeafletMouseEvent & { layer?: L.Layer }) => {
-      const feature = (ev.layer as (L.Layer & { feature?: Feature }) | undefined)?.feature;
-      if (!feature) return;
-      L.popup({ maxWidth: 320 })
-        .setLatLng(ev.latlng)
-        .setContent(contenidoPopup(nombre, feature.properties))
-        .openOn(map);
-    });
+    capa.on('click', alTocar(c.nombre)); // un solo manejador para toda la capa
     return capa;
+  };
+
+  /** Pinpoints de GEOmapas: una chincheta por elemento. En capas enormes, puntos sueltos (mucho más ligeros). */
+  const crearPines = (datos: FeatureCollection, c: CapaProyecto): L.FeatureGroup => {
+    const grupo = L.featureGroup();
+    const conIcono = datos.features.length <= LIMITE_PINES_ICONO;
+    for (const f of datos.features) {
+      const ll = centroide(f);
+      if (!ll) continue;
+      const m: L.Marker | L.CircleMarker = conIcono
+        ? L.marker(ll, { icon: iconoPin(c.color) })
+        : L.circleMarker(ll, { renderer: lienzo, radius: 6, color: '#fff', weight: 1.5, fillColor: c.color, fillOpacity: 0.9 });
+      (m as unknown as { feature: Feature }).feature = f;
+      grupo.addLayer(m);
+    }
+    grupo.on('click', alTocar(c.nombre));
+    return grupo;
+  };
+
+  const restilar = (e: EntradaProyecto, c: CapaProyecto): void => {
+    const relleno = colorRelleno(c);
+    if (e.color === c.color && e.relleno === relleno) return;
+    e.color = c.color;
+    e.relleno = relleno;
+    e.vector?.setStyle(estiloCapa(c.color, relleno));
+    e.pines?.eachLayer((m) => {
+      if (m instanceof L.Marker) m.setIcon(iconoPin(c.color));
+      else if (m instanceof L.CircleMarker) m.setStyle({ fillColor: c.color });
+    });
+  };
+
+  const quitarDelMapa = (e: EntradaProyecto): void => {
+    e.vector?.remove();
+    e.pines?.remove();
   };
 
   const reconciliar = (): void => {
     if (!proyecto) return;
     const g = proyecto;
-    const lista = g.capas;
+    const lista = g.capasEnPanel;
     const ids = new Set(lista.map((c) => c.id));
     for (const [id, e] of entradas) {
       if (!ids.has(id)) {
-        e.layer?.remove();
-        entradas.delete(id);
+        quitarDelMapa(e);
+        entradas.delete(id); // quitada del panel o eliminada: se libera de memoria
       }
     }
+    // De lejos, pinpoints; de cerca, geometrías (igual que GEOmapas)
+    const deLejos = map.getZoom() < UMBRAL_PINS_ZOOM;
     for (const c of lista) {
       let e = entradas.get(c.id);
       if (!e) {
-        e = { layer: null, color: c.color, cargando: false };
+        e = { vector: null, pines: null, color: c.color, relleno: colorRelleno(c), cargando: false };
         entradas.set(c.id, e);
       }
-      if (e.layer && e.color !== c.color) {
-        e.color = c.color;
-        e.layer.setStyle(estiloCapa(c.color));
+      restilar(e, c);
+      if (!c.visible) {
+        quitarDelMapa(e);
+        continue;
       }
-      if (c.visible) {
-        if (!e.layer) {
-          if (e.cargando) continue;
-          e.cargando = true;
-          const entrada = e;
-          void g
-            .datos(c.id)
-            .then((datos) => {
-              entrada.cargando = false;
-              const actual = g.capas.find((x) => x.id === c.id);
-              if (!datos || !actual || entradas.get(c.id) !== entrada) return;
-              entrada.layer = crearGeoJson(datos, actual.color, actual.nombre);
-              entrada.color = actual.color;
-              reconciliar();
-            })
-            .catch((err) => {
-              entrada.cargando = false;
-              console.warn('No se pudo leer la capa', err);
-              mostrarAviso(`No se pudo cargar la capa «${c.nombre}»`, 'error');
-            });
-        } else if (!map.hasLayer(e.layer)) {
-          e.layer.addTo(map);
-        }
-      } else if (e.layer && map.hasLayer(e.layer)) {
-        e.layer.remove();
+      if (!e.vector || !e.pines) {
+        if (e.cargando) continue;
+        e.cargando = true;
+        const entrada = e;
+        void g
+          .datos(c.id)
+          .then((datos) => {
+            entrada.cargando = false;
+            const actual = g.capasEnPanel.find((x) => x.id === c.id);
+            if (!datos || !actual || entradas.get(c.id) !== entrada) return;
+            entrada.vector = crearVector(datos, actual);
+            entrada.pines = crearPines(datos, actual);
+            entrada.color = actual.color;
+            entrada.relleno = colorRelleno(actual);
+            reconciliar();
+          })
+          .catch((err) => {
+            entrada.cargando = false;
+            console.warn('No se pudo leer la capa', err);
+            mostrarAviso(`No se pudo cargar la capa «${c.nombre}»`, 'error');
+          });
+        continue;
       }
+      const ver = deLejos ? e.pines : e.vector;
+      const ocultar = deLejos ? e.vector : e.pines;
+      if (!map.hasLayer(ver)) ver.addTo(map);
+      if (map.hasLayer(ocultar)) ocultar.remove();
     }
   };
 
@@ -214,9 +299,10 @@ export function crearMapa(contenedor: HTMLElement): MapaApp {
       proyecto = g;
       reconciliar();
       g.suscribir(reconciliar);
+      map.on('zoomend', reconciliar);
     },
     async zoomACapa(id) {
-      let b = entradas.get(id)?.layer?.getBounds();
+      let b = entradas.get(id)?.vector?.getBounds();
       if (!b && proyecto) {
         const datos = await proyecto.datos(id);
         if (datos) b = L.geoJSON(datos).getBounds();

@@ -16,6 +16,10 @@ export const PERMISOS = [
   'ver_capas_proyecto',
   'anadir_capas_proyecto',
   'eliminar_capas_proyecto',
+  'editar_capas_proyecto',
+  'descargar_capas_proyecto',
+  'sincronizar_capas_proyecto',
+  'compartir_capas_proyecto',
 ] as const;
 export type Permiso = (typeof PERMISOS)[number];
 
@@ -30,6 +34,10 @@ const TABLA: Record<Permiso, Record<Perfil, boolean>> = {
   ver_capas_proyecto: { ...TODOS },
   anadir_capas_proyecto: { ...TODOS },
   eliminar_capas_proyecto: { ...TODOS },
+  editar_capas_proyecto: { ...TODOS },
+  descargar_capas_proyecto: { ...TODOS },
+  sincronizar_capas_proyecto: { ...TODOS },
+  compartir_capas_proyecto: { ...TODOS },
 };
 
 // Hasta que exista el login, el perfil depende del destino de build.

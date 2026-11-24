@@ -11,3 +11,11 @@ export const GPS = {
 } as const;
 
 export const CARPETA_TRACKS = 'tracks';
+
+/** Capas del proyecto: por debajo de este zoom se ven como pinpoints; a partir de él, como geometrías (igual que GEOmapas). */
+export const UMBRAL_PINS_ZOOM = 14;
+/** Hasta este número de elementos los pinpoints llevan el icono de chincheta; por encima se dibujan como puntos (más ligeros). */
+export const LIMITE_PINES_ICONO = 3000;
+
+/** Transparencia del relleno de las geometrías de las capas del proyecto (igual que GEOmapas). */
+export const OPACIDAD_RELLENO = 0.25;
