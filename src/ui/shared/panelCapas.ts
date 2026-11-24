@@ -202,13 +202,12 @@ export function montarPanelCapas(opts: {
       return b;
     };
 
+    // Todo en una sola línea: visibilidad · muestra de color · nombre · editar · descargar/compartir · quitar.
+    // El color solo se cambia desde «Editar» (no hay un segundo selector en la lista).
     const fila = (c: CapaProyecto): HTMLElement => {
       const f = document.createElement('div');
       f.className = 'proy-row';
 
-      // Primera línea: visibilidad, nombre y color (cambio rápido del borde)
-      const cab = document.createElement('div');
-      cab.className = 'proy-cab';
       const sw = document.createElement('label');
       sw.className = 'switch';
       const input = document.createElement('input');
@@ -220,6 +219,12 @@ export function montarPanelCapas(opts: {
       pista.className = 'switch-pista';
       sw.append(input, pista);
 
+      // Muestra (no es un selector): relleno por dentro y borde por fuera
+      const muestra = document.createElement('span');
+      muestra.className = 'capa-color capa-muestra';
+      muestra.style.background = colorRelleno(c);
+      muestra.style.boxShadow = `0 0 0 2px ${c.color}`;
+
       const nombre = document.createElement('button');
       nombre.type = 'button';
       nombre.className = 'proy-nombre';
@@ -229,36 +234,23 @@ export function montarPanelCapas(opts: {
       n.textContent = c.nombre;
       const sub = document.createElement('span');
       sub.className = 'capa-sub';
-      sub.textContent = `${c.nElementos} elementos`;
+      sub.append(`${c.nElementos} elementos`);
+      const sincronizada = c.sincronizadaEn !== undefined;
+      const nube = document.createElement('span');
+      nube.className = `proy-nube${sincronizada ? ' ok' : ''}`;
+      nube.title = sincronizada ? 'Guardada en la nube' : 'Solo en este dispositivo';
+      nube.innerHTML = sincronizada ? iconoNube(12) : iconoNubeOff(12);
+      sub.append(nube);
       nombre.append(n, sub);
       nombre.addEventListener('click', () => {
         panel.cerrar();
         alZoom(c.id);
       });
 
-      const punto = document.createElement('label');
-      punto.className = 'color-dot';
-      punto.style.background = colorRelleno(c);
-      punto.style.boxShadow = `0 0 0 2.5px ${c.color}`;
-      punto.title = 'Cambiar el color del borde';
-      const color = document.createElement('input');
-      color.type = 'color';
-      color.value = c.color;
-      color.setAttribute('aria-label', `Color del borde de ${c.nombre}`);
-      color.addEventListener('change', () => proyecto.cambiarColor(c.id, color.value));
-      punto.append(color);
-      cab.append(sw, nombre, punto);
-
-      // Segunda línea: nube, editar, descargar/compartir y quitar del panel
-      const acciones = document.createElement('div');
-      acciones.className = 'proy-acciones';
-      const sincronizada = c.sincronizadaEn !== undefined;
-      const nube = document.createElement('span');
-      nube.className = `proy-nube${sincronizada ? ' ok' : ''}`;
-      nube.title = sincronizada ? 'Guardada en la nube' : 'Solo en este dispositivo';
-      nube.innerHTML = sincronizada ? iconoNube(16) : iconoNubeOff(16);
-      acciones.append(
-        nube,
+      f.append(
+        sw,
+        muestra,
+        nombre,
         icono('proy-btn', 'Editar capa', iconoLapiz(16), () => abrirEditorCapa(c, proyecto), !puede('editar_capas_proyecto')),
         icono(
           'proy-btn',
@@ -278,7 +270,6 @@ export function montarPanelCapas(opts: {
           !puede('eliminar_capas_proyecto'),
         ),
       );
-      f.append(cab, acciones);
       return f;
     };
 

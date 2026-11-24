@@ -252,26 +252,20 @@ ul.lista li {
 .capa-row[hidden], .ilm-row[hidden] { display: none; }
 .capa-row .capa-nombre { flex: 1; min-width: 0; }
 
-/* Capas del proyecto: dos líneas por capa (nombre arriba, acciones abajo) para que quepa en el móvil */
-.proy-row { padding: 8px 0; border-top: 1px solid var(--border); }
+/* Capas del proyecto: una sola línea por capa */
+.proy-row { display: flex; align-items: center; gap: 6px; min-height: var(--tap); padding: 4px 0; border-top: 1px solid var(--border); }
 .proy-lista .proy-row:first-child { border-top: none; }
-.proy-cab { display: flex; align-items: center; gap: 10px; min-height: var(--tap); }
 .proy-nombre {
   flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; text-align: left;
-  background: none; border: none; padding: 4px 0; cursor: pointer; font-family: inherit;
+  background: none; border: none; padding: 2px 0; cursor: pointer; font-family: inherit;
 }
 .proy-nombre .capa-nombre { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.capa-sub { font-size: 11px; color: var(--muted); }
-.color-dot {
-  position: relative; width: 26px; height: 26px; flex-shrink: 0; margin: 0 3px; border-radius: 50%;
-  border: 2px solid #fff; cursor: pointer; overflow: hidden;
-}
-.color-dot input { position: absolute; inset: -8px; width: 150%; height: 150%; opacity: 0; cursor: pointer; }
-.proy-acciones { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 2px; }
-.proy-nube { display: flex; align-items: center; margin-right: auto; color: var(--muted); padding-left: 54px; }
+.capa-sub { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.capa-muestra { width: 10px; height: 10px; margin: 0 4px; }
+.proy-nube { display: inline-flex; vertical-align: middle; margin-left: 5px; color: var(--muted); }
 .proy-nube.ok { color: var(--green); }
 .proy-btn, .proy-borrar {
-  width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   background: none; border: 1.5px solid transparent; border-radius: 10px; color: var(--text2); cursor: pointer;
 }
 .proy-btn:hover { color: var(--blue); background: var(--blue-lt); }
