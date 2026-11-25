@@ -1,5 +1,5 @@
 import { puede } from '@/domain/permisos';
-import { iconoCapas, iconoLogo, iconoTrack } from './iconos';
+import { iconoCapas, iconoLogo, iconoTrack, iconoUsuario } from './iconos';
 
 export interface OpcionesCabecera {
   subtitulo?: string;
@@ -8,13 +8,15 @@ export interface OpcionesCabecera {
 }
 
 export interface Cabecera {
+  /** Abre el menú del usuario (verde con conexión, rojo sin conexión). */
+  botonUsuario: HTMLButtonElement;
   /** Abre el panel de capas (oculto si el perfil no puede usarlo). */
   botonCapas: HTMLButtonElement;
   /** Abre el panel del recorrido; null si esta pantalla no lo tiene. */
   botonTrack: HTMLButtonElement | null;
 }
 
-/** Cabecera común: logotipo SPCam, estado de red y dos iconos (capas y recorrido). */
+/** Cabecera común: logotipo SPCam y tres iconos: usuario (estado de la conexión), recorrido y capas. */
 export function montarCabecera(opciones: OpcionesCabecera = {}): Cabecera {
   const { subtitulo, conTrack = false } = opciones;
   const header = document.createElement('header');
@@ -27,7 +29,7 @@ export function montarCabecera(opciones: OpcionesCabecera = {}): Cabecera {
       </div>
     </div>
     <div class="header-sep"></div>
-    <div class="status-pill" id="pill-red"><span class="dot"></span><span class="txt"></span></div>
+    <button class="btn-icono" id="btn-usuario" type="button" aria-haspopup="dialog" aria-expanded="false">${iconoUsuario(20)}</button>
     ${
       conTrack
         ? `<button class="btn-icono" id="btn-track" type="button" aria-haspopup="dialog" aria-expanded="false"
@@ -39,13 +41,15 @@ export function montarCabecera(opciones: OpcionesCabecera = {}): Cabecera {
   if (subtitulo) header.querySelector('.logo-sub')!.textContent = subtitulo;
   document.body.prepend(header);
 
-  const pill = header.querySelector<HTMLElement>('#pill-red')!;
-  const txt = pill.querySelector<HTMLElement>('.txt')!;
+  // El icono de usuario indica la conexión: verde = en línea, rojo = sin conexión
+  const botonUsuario = header.querySelector<HTMLButtonElement>('#btn-usuario')!;
   const pintarRed = () => {
     const online = navigator.onLine;
-    pill.classList.toggle('off', !online);
-    pill.title = online ? 'Hay conexión' : 'Sin conexión';
-    txt.textContent = online ? 'En línea' : 'Sin conexión';
+    botonUsuario.classList.toggle('en-linea', online);
+    botonUsuario.classList.toggle('sin-conexion', !online);
+    const texto = online ? 'en línea' : 'sin conexión';
+    botonUsuario.title = `Usuario (${texto})`;
+    botonUsuario.setAttribute('aria-label', `Usuario: ${texto}`);
   };
   pintarRed();
   window.addEventListener('online', pintarRed);
@@ -57,5 +61,5 @@ export function montarCabecera(opciones: OpcionesCabecera = {}): Cabecera {
   const botonTrack = header.querySelector<HTMLButtonElement>('#btn-track');
   if (botonTrack && !puede('grabar_recorridos') && !puede('ver_recorridos_guardados')) botonTrack.hidden = true;
 
-  return { botonCapas, botonTrack };
+  return { botonUsuario, botonCapas, botonTrack };
 }

@@ -24,11 +24,13 @@ export function crearPanelFlotante(opts: {
   boton: HTMLButtonElement;
   contenedor: HTMLElement;
   alAbrir?: () => void;
+  /** Menú pequeño anclado a la derecha, en vez de un panel ancho */
+  compacto?: boolean;
 }): PanelFlotante {
   const { titulo, icono, boton, contenedor, alAbrir } = opts;
 
   const el = document.createElement('section');
-  el.className = 'panel-flotante glass-card';
+  el.className = `panel-flotante glass-card${opts.compacto ? ' compacto' : ''}`;
   el.hidden = true;
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-label', titulo);

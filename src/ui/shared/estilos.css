@@ -58,16 +58,6 @@ header {
 .logo-sub { font-size: 8px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-top: 2px; line-height: 1; }
 .header-sep { flex: 1; }
 
-.status-pill {
-  font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px;
-  background: var(--green-lt); border: 1px solid #a8ddc0; color: var(--green);
-  display: flex; align-items: center; gap: 6px; white-space: nowrap;
-}
-.status-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulso 2s infinite; }
-.status-pill.off { background: var(--s3); border-color: var(--border2); color: var(--muted); }
-.status-pill.off .dot { animation: none; }
-@keyframes pulso { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
-
 /* Iconos de la cabecera (capas, recorrido) */
 .btn-icono {
   position: relative; width: 42px; height: 42px; flex-shrink: 0;
@@ -190,9 +180,6 @@ ul.lista li {
   display: flex; gap: 8px; justify-content: space-between; align-items: center;
 }
 .carga-gpx { font-size: 12px; color: var(--text2); }
-
-/* Pantallas estrechas: la píldora de red queda solo como punto */
-@media (max-width: 380px) { .status-pill .txt { display: none; } .status-pill { padding: 6px; } }
 
 /* ── Panel del recorrido ── */
 .tk-estado { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; color: var(--text); }
@@ -357,15 +344,36 @@ ul.lista li {
 button, label, input { -webkit-tap-highlight-color: transparent; }
 button:focus:not(:focus-visible) { outline: none; }
 
-/* ── Selector de mapa base (como el de GEOmapas): abajo a la derecha, «Orto | Mapa» ── */
-.selector-base {
-  position: absolute; right: 12px; bottom: 16px; z-index: 1000;
-  display: flex; gap: 3px; padding: 4px; border-radius: 14px;
+/* Icono de usuario: verde con conexión, rojo sin conexión (como el icono del recorrido cuando graba) */
+.btn-icono.en-linea { background: var(--green-lt); border-color: var(--green); color: var(--green); }
+.btn-icono.sin-conexion { background: #ffebee; border-color: var(--danger); color: var(--danger); }
+.btn-icono.en-linea.active { background: var(--green); border-color: var(--green); color: #fff; }
+.btn-icono.sin-conexion.active { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+/* Menú de usuario (panel pequeño a la derecha) */
+.panel-flotante.compacto { left: auto; right: 10px; width: 260px; max-width: calc(100% - 20px); }
+.usr-nombre { font-size: 15px; font-weight: 800; color: var(--text); padding: 10px 0 12px; word-break: break-word; }
+.usr-zona .btn-grande { width: 100%; }
+.usr-aviso { font-size: 12px; color: var(--text2); margin-bottom: 10px; line-height: 1.4; }
+
+/* ── Selector de mapa base (como el de GEOmapas en el móvil): píldora con la selección actual ── */
+.selector-base { position: absolute; right: 12px; bottom: 14px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.sb-boton {
+  height: 50px; padding: 0 17px; border-radius: 25px; display: flex; align-items: center; gap: 8px;
+  background: var(--glass); border: 1px solid var(--glass-border); box-shadow: var(--shadow); color: var(--text2);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  font-family: inherit; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; cursor: pointer;
 }
-.bm-btn {
-  min-width: 56px; min-height: 36px; padding: 7px 14px; border-radius: 10px; border: none; cursor: pointer;
-  font-family: inherit; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-  color: var(--text2); background: transparent; transition: all .18s;
+.sb-boton.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+.sb-panel {
+  min-width: 160px; padding: 8px; display: flex; flex-direction: column; gap: 3px;
+  background: var(--glass); border: 1px solid var(--glass-border); border-radius: 14px; box-shadow: var(--shadow);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
 }
-.bm-btn[aria-checked="true"] { background: var(--blue); color: #fff; box-shadow: 0 1px 4px rgba(47,111,222,.4); }
-@media (hover: hover) { .bm-btn[aria-checked="false"]:hover { background: var(--blue-lt); color: var(--blue); } }
+.sb-panel[hidden] { display: none; }
+.sb-opcion {
+  min-height: var(--tap); padding: 10px 16px; border: none; border-radius: 10px; text-align: left; cursor: pointer;
+  background: transparent; color: var(--text2); font-family: inherit; font-size: 13px; font-weight: 700;
+}
+.sb-opcion.active { background: var(--blue); color: #fff; }
+@media (hover: hover) { .sb-opcion:not(.active):hover { background: var(--blue-lt); color: var(--blue); } }

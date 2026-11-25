@@ -5,10 +5,15 @@ import { leerGpx } from '@/domain/tracks/gpx';
 import { montarCabecera } from '@/ui/shared/cabecera';
 import { crearMapa, Traza } from '@/ui/shared/mapa';
 import { montarPanelCapas } from '@/ui/shared/panelCapas';
+import { montarPanelUsuario } from '@/ui/shared/panelUsuario';
 import { montarSelectorBase } from '@/ui/shared/selectorBase';
 
-const { botonCapas } = montarCabecera({ subtitulo: 'Gestor' });
+const { botonUsuario, botonCapas } = montarCabecera({ subtitulo: 'Gestor' });
 const contenedor = document.querySelector<HTMLElement>('.mapa-wrap')!;
+montarPanelUsuario({
+  boton: botonUsuario,
+  contenedor: contenedor,
+});
 const app = crearMapa(document.getElementById('mapa')!);
 const traza = new Traza(app.map);
 const estado = document.getElementById('estado')!;

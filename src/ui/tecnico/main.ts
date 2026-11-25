@@ -6,12 +6,21 @@ import { montarCabecera } from '@/ui/shared/cabecera';
 import { mostrarAviso } from '@/ui/shared/aviso';
 import { crearMapa, Traza } from '@/ui/shared/mapa';
 import { montarPanelCapas } from '@/ui/shared/panelCapas';
+import { montarPanelUsuario } from '@/ui/shared/panelUsuario';
 import { montarSelectorBase } from '@/ui/shared/selectorBase';
 import { montarPanelTrack } from './panelTrack';
 
-const { botonCapas, botonTrack } = montarCabecera({ conTrack: true });
+const { botonUsuario, botonCapas, botonTrack } = montarCabecera({ conTrack: true });
 const contenedor = document.querySelector<HTMLElement>('.mapa-wrap')!;
 
+montarPanelUsuario({
+  boton: botonUsuario,
+  contenedor: contenedor,
+  motivoBloqueo: () =>
+    grabador.estado !== 'inactivo'
+      ? 'Hay un recorrido en curso. Finalízalo antes de cerrar sesión.'
+      : null,
+});
 const app = crearMapa(document.getElementById('mapa')!);
 const mapa = app.map;
 const trazaEnCurso = new Traza(mapa); // roja: el recorrido que se está grabando

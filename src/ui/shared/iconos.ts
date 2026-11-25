@@ -36,6 +36,15 @@ export const iconoSync = (s = 16) =>
 export const iconoEnviar = (s = 16) =>
   svg('<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>', s);
 
+/** Icono del selector de mapa base (el mismo de GEOmapas). */
+export const iconoRaster = (s = 16) => svg('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>', s);
+
+export const iconoUsuario = (s = 16) =>
+  svg('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', s);
+
+export const iconoSalir = (s = 16) =>
+  svg('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>', s);
+
 export const iconoCerrar = (s = 16) =>
   svg('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>', s);
 
