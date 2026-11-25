@@ -5,6 +5,7 @@ import { leerGpx } from '@/domain/tracks/gpx';
 import { montarCabecera } from '@/ui/shared/cabecera';
 import { crearMapa, Traza } from '@/ui/shared/mapa';
 import { montarPanelCapas } from '@/ui/shared/panelCapas';
+import { montarSelectorBase } from '@/ui/shared/selectorBase';
 
 const { botonCapas } = montarCabecera({ subtitulo: 'Gestor' });
 const contenedor = document.querySelector<HTMLElement>('.mapa-wrap')!;
@@ -15,6 +16,7 @@ const estado = document.getElementById('estado')!;
 void Promise.all([crearGestorCapas(), crearGestorProyecto()]).then(([gestor, proyecto]) => {
   app.conectar(gestor);
   app.conectarProyecto(proyecto);
+  montarSelectorBase({ gestor, contenedor });
   montarPanelCapas({
     gestor,
     proyecto,

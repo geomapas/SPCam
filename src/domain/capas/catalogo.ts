@@ -36,6 +36,8 @@ export type IconoBase = 'satelite' | 'mapa';
 export interface MapaBase {
   id: string;
   nombre: string;
+  /** Texto corto del selector */
+  etiqueta: string;
   icono: IconoBase;
   fuente: Fuente;
 }
@@ -53,6 +55,7 @@ export const MAPAS_BASE: readonly MapaBase[] = [
   {
     id: 'ortofoto',
     nombre: 'Ortofoto',
+    etiqueta: 'Orto',
     icono: 'satelite',
     // Ortofoto 2024 de la Junta de CLM (misma fuente que GEOmapas). Selector de año: pendiente.
     fuente: {
@@ -71,6 +74,7 @@ export const MAPAS_BASE: readonly MapaBase[] = [
   {
     id: 'topografico',
     nombre: 'Topográfico',
+    etiqueta: 'Mapa',
     icono: 'mapa',
     // PROVISIONAL: OpenStreetMap estándar. Sustituible por una fuente topográfica oficial.
     fuente: {

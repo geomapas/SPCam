@@ -6,6 +6,7 @@ import { montarCabecera } from '@/ui/shared/cabecera';
 import { mostrarAviso } from '@/ui/shared/aviso';
 import { crearMapa, Traza } from '@/ui/shared/mapa';
 import { montarPanelCapas } from '@/ui/shared/panelCapas';
+import { montarSelectorBase } from '@/ui/shared/selectorBase';
 import { montarPanelTrack } from './panelTrack';
 
 const { botonCapas, botonTrack } = montarCabecera({ conTrack: true });
@@ -39,6 +40,7 @@ async function arrancar(): Promise<void> {
   const [gestor, proyecto] = await Promise.all([crearGestorCapas(), crearGestorProyecto()]);
   app.conectar(gestor);
   app.conectarProyecto(proyecto);
+  montarSelectorBase({ gestor, contenedor });
   montarPanelCapas({
     gestor,
     proyecto,

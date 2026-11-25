@@ -145,8 +145,8 @@ interface EntradaProyecto {
  * Orden de dibujo: mapa base < capas precargadas < capas del proyecto < recorrido.
  */
 export function crearMapa(contenedor: HTMLElement): MapaApp {
-  const map = L.map(contenedor, { zoomControl: false, maxZoom: 21 }).setView([39.5, -3.0], 8);
-  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  // Sin banner de créditos ni botones de zoom (en el móvil se hace zoom con los dedos).
+  const map = L.map(contenedor, { zoomControl: false, attributionControl: false, maxZoom: 21 }).setView([39.5, -3.0], 8);
 
   // ── mapa base y capas precargadas ──
   const cache = new Map<string, L.TileLayer>();

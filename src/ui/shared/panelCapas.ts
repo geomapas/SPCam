@@ -1,6 +1,5 @@
 import {
   CAPAS_TEMATICAS,
-  MAPAS_BASE,
   colorRelleno,
   type CapaProyecto,
   type EstadoCapas,
@@ -15,17 +14,14 @@ import {
   iconoCerrar,
   iconoCompartir,
   iconoLapiz,
-  iconoMapa,
   iconoMas,
   iconoNube,
   iconoNubeOff,
-  iconoSatelite,
 } from './iconos';
 import { abrirModal } from './modal';
 import { abrirAnadirCapa, abrirCompartirCapa, abrirEditorCapa } from './modalesCapa';
 import { crearPanelFlotante } from './panelFlotante';
 
-const ICONOS = { satelite: iconoSatelite, mapa: iconoMapa } as const;
 const sinAcentos = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 /** Cabecera de sección: etiqueta a la izquierda y, a la derecha, lo que se pase (ajustes, contador…). */
@@ -40,7 +36,8 @@ function cabeceraSeccion(texto: string, ...derecha: HTMLElement[]): HTMLElement 
 }
 
 /**
- * Panel "Cartografía y capas": mapa base, capas temáticas (precargadas) y capas del proyecto.
+ * Panel "Cartografía y capas": capas temáticas (precargadas) y capas del proyecto.
+ * El mapa base se elige con el selector flotante (selectorBase.ts).
  */
 export function montarPanelCapas(opts: {
   gestor: GestorCapas;
@@ -51,10 +48,9 @@ export function montarPanelCapas(opts: {
   alZoom: (id: string) => void;
 }): void {
   const { gestor, proyecto, boton, contenedor, alZoom } = opts;
-  const verBase = puede('cambiar_mapa_base');
   const verCapas = puede('ver_capas_tematicas');
   const verProyecto = puede('ver_capas_proyecto');
-  if (!verBase && !verCapas && !verProyecto) return;
+  if (!verCapas && !verProyecto) return;
 
   const panel = crearPanelFlotante({
     titulo: 'Cartografía y capas',
@@ -63,33 +59,6 @@ export function montarPanelCapas(opts: {
     contenedor,
   });
   const { cuerpo } = panel;
-
-  // ── Mapa base ──
-  const botonesBase = new Map<string, HTMLButtonElement>();
-  if (verBase) {
-    const sec = document.createElement('div');
-    sec.className = 'pc-sec';
-    sec.append(cabeceraSeccion('Mapa base'));
-    const grupo = document.createElement('div');
-    grupo.className = 'segmentado';
-    grupo.setAttribute('role', 'radiogroup');
-    grupo.setAttribute('aria-label', 'Mapa base');
-    for (const m of MAPAS_BASE) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'seg-btn';
-      b.setAttribute('role', 'radio');
-      b.innerHTML = ICONOS[m.icono](16);
-      const t = document.createElement('span');
-      t.textContent = m.nombre;
-      b.append(t);
-      b.addEventListener('click', () => gestor.cambiarBase(m.id));
-      botonesBase.set(m.id, b);
-      grupo.append(b);
-    }
-    sec.append(grupo);
-    cuerpo.append(sec);
-  }
 
   // ── Capas temáticas (precargadas) ──
   const filasTematicas = new Map<string, { fila: HTMLElement; input: HTMLInputElement }>();
@@ -291,7 +260,6 @@ export function montarPanelCapas(opts: {
   }
 
   const pintar = (e: EstadoCapas): void => {
-    botonesBase.forEach((b, id) => b.setAttribute('aria-checked', String(id === e.base)));
     filasTematicas.forEach(({ fila, input }, id) => {
       input.checked = e.activas.includes(id);
       fila.hidden = !e.enPanel.includes(id);
