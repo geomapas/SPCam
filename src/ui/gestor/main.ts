@@ -2,6 +2,7 @@ import '@/ui/shared/tema';
 import { crearGestorCapas, crearGestorProyecto } from '@/domain/capas';
 import { longitudM } from '@/domain/tracks/geo';
 import { leerGpx } from '@/domain/tracks/gpx';
+import { montarBotonUbicacion } from '@/ui/shared/botonUbicacion';
 import { montarCabecera } from '@/ui/shared/cabecera';
 import { montarDock } from '@/ui/shared/dock';
 import { crearMapa, Traza } from '@/ui/shared/mapa';
@@ -10,12 +11,13 @@ import { montarPanelCapas } from '@/ui/shared/panelCapas';
 import { montarPanelUsuario } from '@/ui/shared/panelUsuario';
 import { montarSelectorBase } from '@/ui/shared/selectorBase';
 
-const { botonUsuario } = montarCabecera({ subtitulo: 'Gestor' });
+const { botonUsuario, botonUbicacion } = montarCabecera({ subtitulo: 'Gestor' });
 const dock = montarDock();
 montarPanelAjustes({ boton: dock.botonAjustes });
 montarPanelUsuario({ boton: botonUsuario });
 
 const app = crearMapa(document.getElementById('mapa')!);
+if (botonUbicacion) montarBotonUbicacion({ boton: botonUbicacion, app });
 const traza = new Traza(app.map);
 
 // Comprobación provisional de la capa compartida: cargar un GPX y verlo en el mapa

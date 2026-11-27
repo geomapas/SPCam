@@ -14,6 +14,7 @@ import {
 } from '@/domain/capas';
 import { LIMITE_PINES_ICONO, UMBRAL_PINS_ZOOM } from '@/config';
 import { porTramos } from '@/domain/tracks/geo';
+import type { PosicionActual } from '@/domain/ubicacion';
 import type { TrackPoint } from '@/domain/types';
 import { mostrarAviso } from './aviso';
 
@@ -129,6 +130,8 @@ export interface MapaApp {
   conectarProyecto(proyecto: GestorProyecto): void;
   /** Encuadra el mapa en una capa del proyecto. */
   zoomACapa(id: string): Promise<void>;
+  /** Centra el mapa en la posición dada y la marca (con su círculo de precisión). */
+  mostrarPosicion(p: PosicionActual): void;
 }
 
 interface EntradaProyecto {
@@ -149,6 +152,10 @@ interface EntradaProyecto {
 export function crearMapa(contenedor: HTMLElement): MapaApp {
   // Sin banner de créditos ni botones de zoom (en el móvil se hace zoom con los dedos).
   const map = L.map(contenedor, { zoomControl: false, attributionControl: false, maxZoom: 21 }).setView([39.5, -3.0], 8);
+
+  // «Mi posición» siempre por encima de capas y recorridos
+  map.createPane('posicion').style.zIndex = '460';
+  let miPosicion: L.LayerGroup | null = null;
 
   // ── mapa base y capas precargadas ──
   const cache = new Map<string, L.TileLayer>();
@@ -305,6 +312,15 @@ export function crearMapa(contenedor: HTMLElement): MapaApp {
       reconciliar();
       g.suscribir(reconciliar);
       map.on('zoomend', reconciliar);
+    },
+    mostrarPosicion(p) {
+      miPosicion?.remove();
+      const ll: L.LatLngTuple = [p.lat, p.lon];
+      miPosicion = L.layerGroup([
+        L.circle(ll, { radius: Math.max(p.acc, 1), pane: 'posicion', color: '#38bdf8', weight: 1, fillColor: '#38bdf8', fillOpacity: 0.12, interactive: false }),
+        L.circleMarker(ll, { radius: 8, pane: 'posicion', color: '#ffffff', weight: 3, fillColor: '#38bdf8', fillOpacity: 1, interactive: false }),
+      ]).addTo(map);
+      map.setView(ll, Math.max(map.getZoom(), 17));
     },
     async zoomACapa(id) {
       let b = entradas.get(id)?.vector?.getBounds();

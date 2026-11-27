@@ -3,17 +3,22 @@
 import './estilos.css';
 
 export type Tema = 'claro' | 'oscuro';
-const CLAVE = 'spcam.tema';
+// Clave nueva (v2): el valor anterior se guardó sin que el usuario eligiera nada y habría dejado el oscuro fijado en todos los dispositivos.
+const CLAVE = 'spcam.tema2';
 const COLOR_BARRA: Record<Tema, string> = { oscuro: '#090a0c', claro: '#f4f4f5' };
 
 export function temaActual(): Tema {
   return document.documentElement.classList.contains('dark') ? 'oscuro' : 'claro';
 }
 
-/** Cambia el tema, lo recuerda en el dispositivo y ajusta el color de la barra del sistema. */
-export function fijarTema(tema: Tema): void {
+function aplicar(tema: Tema): void {
   document.documentElement.classList.toggle('dark', tema === 'oscuro');
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', COLOR_BARRA[tema]);
+}
+
+/** Cambia el tema (elección del usuario) y la recuerda en el dispositivo. */
+export function fijarTema(tema: Tema): void {
+  aplicar(tema);
   try {
     localStorage.setItem(CLAVE, tema);
   } catch {
@@ -21,7 +26,7 @@ export function fijarTema(tema: Tema): void {
   }
 }
 
-/** Oscuro por defecto. Un pequeño script en el HTML ya lo aplica antes de pintar para evitar el parpadeo. */
+/** Claro por defecto. Solo se recuerda lo que el usuario elige. Un pequeño script en el HTML ya lo aplica antes de pintar. */
 export function iniciarTema(): void {
   let guardado: string | null = null;
   try {
@@ -29,7 +34,7 @@ export function iniciarTema(): void {
   } catch {
     /* ignorar */
   }
-  fijarTema(guardado === 'claro' ? 'claro' : 'oscuro');
+  aplicar(guardado === 'oscuro' ? 'oscuro' : 'claro');
 }
 
 iniciarTema();

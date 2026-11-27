@@ -142,10 +142,10 @@ export class GestorProyecto {
   /** Cambio rápido del color del borde (el punto de color de la lista). */
   cambiarColor(id: string, color: string): void {
     if (!puede('editar_capas_proyecto') || !COLOR.test(color)) return;
-    this.cambiar(id, { color });
+    this.cambiar(id, { color, relleno: color });
   }
 
-  /** Edición completa: nombre, color del borde, color y opacidad del relleno. Devuelve false si algo no es válido. */
+  /** Edición completa: nombre, color (borde y relleno) y opacidad del relleno. Devuelve false si algo no es válido. */
   editar(id: string, cambios: { nombre?: string; color?: string; relleno?: string; opacidad?: number }): boolean {
     if (!puede('editar_capas_proyecto')) return false;
     if (!this._capas.some((c) => c.id === id)) return false;
@@ -158,6 +158,7 @@ export class GestorProyecto {
     if (cambios.color !== undefined) {
       if (!COLOR.test(cambios.color)) return false;
       nuevo.color = cambios.color;
+      nuevo.relleno = cambios.color; // un solo color por capa: el relleno sigue al borde (la opacidad se ajusta aparte)
     }
     if (cambios.relleno !== undefined) {
       if (!COLOR.test(cambios.relleno)) return false;

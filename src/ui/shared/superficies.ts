@@ -75,8 +75,11 @@ export function crearPopover(opts: {
   };
   boton.addEventListener('click', () => api.alternar());
   document.addEventListener('click', (ev) => {
-    const t = ev.target as Node;
-    if (!raiz.hidden && !tarjeta.contains(t) && !boton.contains(t)) api.cerrar();
+    if (raiz.hidden) return;
+    // composedPath() se calcula al lanzar el clic: sigue valiendo aunque el botón pulsado ya se haya sustituido al repintar el panel
+    const ruta = ev.composedPath();
+    if (ruta.includes(tarjeta) || ruta.includes(boton)) return;
+    api.cerrar();
   });
   todas.add(api);
   registrarEscape();

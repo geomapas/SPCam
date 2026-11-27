@@ -12,7 +12,7 @@ Referencia visual: `spcam_cartograf_a_y_control_de_campo.html`. Las reglas viven
 6. **Sin parpadeos ni animaciones llamativas.** El estado se comunica con color, no con puntos que laten.
 
 ## Tema
-Oscuro por defecto (acento lima `#D9F99D`); claro opcional (acento esmeralda `#059669`). Se cambia en **Ajustes → Apariencia**, se guarda en el dispositivo
+**Claro por defecto** (acento esmeralda `#059669`); oscuro opcional (acento lima `#D9F99D`). Se cambia en **Ajustes → Apariencia**; solo se recuerda lo que el usuario elige
 y se aplica antes de pintar. Todos los colores son tokens que cambian con la clase `dark` de `<html>`: `--fondo --texto --suave --hoja --tarjeta --vidrio --acento …`.
 
 ## Tipografía e iconos
@@ -27,7 +27,7 @@ Sombras: `--sombra-lg` (elementos flotantes) · `--sombra-2xl` (hojas, popovers,
 ## Componentes (clases de `estilos.css`)
 | Qué | Clases | Cuándo |
 |---|---|---|
-| Cabecera | `.hud-cabecera .capsula .btn-circulo .btn-usuario` | Siempre arriba: logo + usuario + recorrido |
+| Cabecera | `.hud-cabecera .capsula .btn-circulo .btn-usuario` | Siempre arriba: logo + usuario, y botones redondos de recorrido y «mi ubicación» |
 | Dock | `.dock .dock-barra .dock-boton .dock-base` | Acciones permanentes abajo (mapa base, capas, ajustes) |
 | Popover | `crearPopover()` · `.popover-cabecera/-dock` | Menús pequeños y rápidos |
 | Hoja inferior | `crearHoja()` · `.hoja` | Listados y herramientas con varias secciones (capas) |
@@ -49,5 +49,6 @@ Sombras: `--sombra-lg` (elementos flotantes) · `--sombra-2xl` (hojas, popovers,
 1. Elegir la superficie (popover / hoja / ventana) según la tabla.
 2. Construirla con clases existentes; si falta algo, añadirlo a `estilos.css` con tokens.
 3. Comprobar tema claro y oscuro, y que nada necesite internet.
+   Si un panel se repinta al pulsar uno de sus botones, el cierre «al tocar fuera» ya lo tiene en cuenta (`superficies.ts`); no lo reimplementes.
 4. Añadir su permiso a `src/domain/permisos.ts` (todos «sí» hasta el final).
 5. Pasar `npm run typecheck` y `npm run build`.

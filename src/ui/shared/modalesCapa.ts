@@ -1,5 +1,4 @@
 import {
-  colorRelleno,
   NubeNoDisponible,
   opacidadRelleno,
   PALETA,
@@ -69,7 +68,7 @@ function muestras(inicial: string, aria: string): { caja: HTMLElement; valor: ()
   return { caja, valor: () => actual };
 }
 
-/* ═════════ Editar: nombre, color del borde, color del relleno y opacidad ═════════ */
+/* ═════════ Editar: nombre, color (borde y relleno) y opacidad del relleno ═════════ */
 export function abrirEditorCapa(capa: CapaProyecto, proyecto: GestorProyecto): void {
   const cont = el('div');
   cont.style.display = 'flex';
@@ -82,8 +81,7 @@ export function abrirEditorCapa(capa: CapaProyecto, proyecto: GestorProyecto): v
   nombre.value = capa.nombre;
   nombre.autocomplete = 'off';
 
-  const borde = muestras(capa.color, 'Color del borde');
-  const relleno = muestras(colorRelleno(capa), 'Color del relleno');
+  const color = muestras(capa.color, 'Color de la capa');
 
   const rango = el('input', 'rango');
   rango.type = 'range';
@@ -99,7 +97,7 @@ export function abrirEditorCapa(capa: CapaProyecto, proyecto: GestorProyecto): v
   const bloqueRango = el('div', 'bloque-modal');
   bloqueRango.append(cabRango, rango);
 
-  cont.append(bloque('Nombre', nombre), bloque('Color del borde', borde.caja), bloque('Color del relleno', relleno.caja), bloqueRango);
+  cont.append(bloque('Nombre', nombre), bloque('Color', color.caja), bloqueRango);
 
   abrirModal({
     etiqueta: 'Editar capa',
@@ -113,8 +111,7 @@ export function abrirEditorCapa(capa: CapaProyecto, proyecto: GestorProyecto): v
         alPulsar: (cerrar) => {
           const ok = proyecto.editar(capa.id, {
             nombre: nombre.value,
-            color: borde.valor(),
-            relleno: relleno.valor(),
+            color: color.valor(),
             opacidad: Number(rango.value) / 100,
           });
           if (!ok) return mostrarAviso('Escribe un nombre para la capa.', 'error');

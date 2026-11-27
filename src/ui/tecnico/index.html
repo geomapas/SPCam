@@ -1,14 +1,14 @@
 <!doctype html>
-<html lang="es" class="dark">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#090a0c" />
+    <meta name="theme-color" content="#f4f4f5" />
     <title>SPCam</title>
-    <!-- Aplica el tema guardado antes de pintar (evita el parpadeo). Oscuro por defecto. -->
+    <!-- Aplica el tema guardado antes de pintar (evita el parpadeo). Claro por defecto. -->
     <script>
       try {
-        if (localStorage.getItem('spcam.tema') === 'claro') document.documentElement.classList.remove('dark');
+        if (localStorage.getItem('spcam.tema2') === 'oscuro') document.documentElement.classList.add('dark');
       } catch (e) {}
     </script>
   </head>

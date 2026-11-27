@@ -40,11 +40,12 @@ Cuando llegue Firebase, entra solo en `src/data/`.
 - **Diseño:** reglas en `DISENO.md` y `src/ui/shared/estilos.css` (tokens claro/oscuro y componentes). Mapa a pantalla completa con la interfaz flotando encima:
   cabecera (logo + usuario + recorrido), dock inferior (mapa base, capas, ajustes), popovers, hojas inferiores y ventanas.
   Tipografías (Inter y JetBrains Mono) e iconos (Phosphor) van empaquetados: funciona sin conexión.
-- **Tema:** oscuro por defecto; claro desde **Ajustes → Apariencia**. Se recuerda en el dispositivo.
+- **Tema:** claro por defecto; oscuro desde **Ajustes → Apariencia**. Solo se recuerda lo que el usuario elige.
+- **Mi ubicación:** botón redondo junto al del recorrido; centra el mapa en la posición actual y la marca con su círculo de precisión.
 - **Mapa base:** la miniatura del dock muestra el actual; al tocarla se elige entre Ortofoto y Mapa.
 - **Hoja «Capas»:**
   1. **Capas temáticas:** las precargadas (por ahora Recintos SIGPAC). La rueda de ajustes elige cuáles aparecen en la lista; una capa quitada de la lista tampoco se ve en el mapa.
-  2. **Capas del proyecto:** archivos que carga el usuario (**SHP** en .zip o .shp + .dbf + .prj, **GeoJSON** y **KML**). Cada capa, en una línea: nombre (ir a la capa), **editar** (nombre, color del borde, color y opacidad del relleno), **descargar / compartir**, **quitar del panel** e interruptor de visibilidad.
+  2. **Capas del proyecto:** archivos que carga el usuario (**SHP** en .zip o .shp + .dbf + .prj, **GeoJSON** y **KML**). Cada capa, en una línea: nombre (ir a la capa), **editar** (nombre, un solo color para borde y relleno, y opacidad del relleno), **descargar / compartir**, **quitar del panel** e interruptor de visibilidad.
      - De lejos se ven como pinpoints y desde el zoom 14 como geometrías (`UMBRAL_PINS_ZOOM` en `src/config.ts`).
      - **Descargar / compartir:** KML, SHP (zip; geometrías mezcladas → un shapefile por tipo) y XLSX. En el móvil abre «compartir»; en el navegador descarga. **Sync** y **Enviar** necesitan Firebase y hoy avisan de que la nube no está conectada.
      - **Quitar del panel no borra:** la capa sigue guardada en el dispositivo. **Añadir capa** busca entre las guardadas (dispositivo y, cuando exista, nube); desde ahí también se elimina para siempre (con confirmación) o se **carga un archivo nuevo**.

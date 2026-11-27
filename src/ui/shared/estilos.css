@@ -170,6 +170,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--acento-tint
 .btn-circulo.grabando { color: var(--coral); background: color-mix(in srgb, var(--coral) 16%, var(--vidrio)); border-color: color-mix(in srgb, var(--coral) 45%, transparent); }
 .btn-circulo.pausado { color: var(--ambar); background: color-mix(in srgb, var(--ambar) 16%, var(--vidrio)); border-color: color-mix(in srgb, var(--ambar) 45%, transparent); }
 
+/* «Localizarme» esperando al GPS: color de acento (sin animaciones) */
+.btn-circulo.cargando { color: var(--acento-tinta); }
+
 /* ── 5. DOCK INFERIOR ─────────────────────────────────────────────────────── */
 .dock {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; pointer-events: none; display: flex; justify-content: center;

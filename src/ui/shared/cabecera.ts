@@ -1,5 +1,5 @@
 import { puede } from '@/domain/permisos';
-import { iconoLogo, iconoTrack, iconoUsuario } from './iconos';
+import { iconoLogo, iconoTrack, iconoUbicacion, iconoUsuario } from './iconos';
 
 export interface OpcionesCabecera {
   subtitulo?: string;
@@ -12,9 +12,11 @@ export interface Cabecera {
   botonUsuario: HTMLButtonElement;
   /** Abre el panel del recorrido; null si esta pantalla no lo tiene. */
   botonTrack: HTMLButtonElement | null;
+  /** Centra el mapa en mi posición; null si el perfil no puede usarlo. */
+  botonUbicacion: HTMLButtonElement | null;
 }
 
-/** Cabecera flotante: cápsula con el logotipo SPCam y el usuario, y el botón redondo del recorrido. */
+/** Cabecera flotante: cápsula con el logotipo SPCam y el usuario, y los botones redondos del recorrido y de «localizarme». */
 export function montarCabecera(opciones: OpcionesCabecera = {}): Cabecera {
   const { subtitulo, conTrack = false } = opciones;
   const raiz = document.createElement('header');
@@ -34,6 +36,7 @@ export function montarCabecera(opciones: OpcionesCabecera = {}): Cabecera {
           ? `<button class="btn-circulo vidrio" id="btn-track" type="button" aria-label="Recorrido (track)" title="Recorrido (track)">${iconoTrack(22)}</button>`
           : ''
       }
+      <button class="btn-circulo vidrio" id="btn-ubicacion" type="button" aria-label="Mi ubicación" title="Mi ubicación">${iconoUbicacion(22)}</button>
     </div>`;
   if (subtitulo) raiz.querySelector('.logo-sub')!.textContent = subtitulo;
   document.body.prepend(raiz);
@@ -54,5 +57,7 @@ export function montarCabecera(opciones: OpcionesCabecera = {}): Cabecera {
 
   const botonTrack = raiz.querySelector<HTMLButtonElement>('#btn-track');
   if (botonTrack && !puede('grabar_recorridos') && !puede('ver_recorridos_guardados')) botonTrack.hidden = true;
-  return { botonUsuario, botonTrack };
+  const botonUbicacion = raiz.querySelector<HTMLButtonElement>('#btn-ubicacion')!;
+  if (!puede('ver_mi_ubicacion')) botonUbicacion.hidden = true;
+  return { botonUsuario, botonTrack, botonUbicacion: botonUbicacion.hidden ? null : botonUbicacion };
 }

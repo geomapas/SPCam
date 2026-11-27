@@ -3,6 +3,7 @@ import { crearGestorCapas, crearGestorProyecto } from '@/domain/capas';
 import { pedirPersistencia } from '@/domain/tracks/repositorio';
 import { TrackRecorder } from '@/domain/tracks/trackRecorder';
 import { mostrarAviso } from '@/ui/shared/aviso';
+import { montarBotonUbicacion } from '@/ui/shared/botonUbicacion';
 import { montarCabecera } from '@/ui/shared/cabecera';
 import { montarDock } from '@/ui/shared/dock';
 import { crearMapa, Traza } from '@/ui/shared/mapa';
@@ -12,7 +13,7 @@ import { montarPanelUsuario } from '@/ui/shared/panelUsuario';
 import { montarSelectorBase } from '@/ui/shared/selectorBase';
 import { montarPanelTrack } from './panelTrack';
 
-const { botonUsuario, botonTrack } = montarCabecera({ conTrack: true });
+const { botonUsuario, botonUbicacion, botonTrack } = montarCabecera({ conTrack: true });
 const dock = montarDock();
 montarPanelAjustes({ boton: dock.botonAjustes });
 montarPanelUsuario({
@@ -22,6 +23,7 @@ montarPanelUsuario({
 });
 
 const app = crearMapa(document.getElementById('mapa')!);
+if (botonUbicacion) montarBotonUbicacion({ boton: botonUbicacion, app });
 const mapa = app.map;
 const trazaEnCurso = new Traza(mapa); // coral: el recorrido que se está grabando
 const trazaGuardada = new Traza(mapa, '#38bdf8'); // azul: un recorrido guardado que se consulta
