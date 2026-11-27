@@ -1,92 +1,123 @@
 import {
   colorRelleno,
   NubeNoDisponible,
+  opacidadRelleno,
+  PALETA,
   type CapaProyecto,
   type FichaNube,
   type FormatoExport,
   type GestorProyecto,
 } from '@/domain/capas';
-import { OPACIDAD_RELLENO } from '@/config';
 import { puede } from '@/domain/permisos';
 import { mostrarAviso } from './aviso';
-import { iconoDescargar, iconoEnviar, iconoMas, iconoPapelera, iconoSync } from './iconos';
+import { iconoArchivoKml, iconoArchivoXls, iconoArchivoZip, iconoCerrar, iconoMas, iconoNube, iconoSync } from './iconos';
 import { abrirModal } from './modal';
 
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-function campo(etiqueta: string, control: HTMLElement): HTMLElement {
-  const d = document.createElement('div');
-  d.className = 'campo';
-  const l = document.createElement('div');
-  l.className = 'modal-label';
-  l.textContent = etiqueta;
-  d.append(l, control);
-  return d;
+function el<K extends keyof HTMLElementTagNameMap>(tag: K, clase?: string, texto?: string): HTMLElementTagNameMap[K] {
+  const e = document.createElement(tag);
+  if (clase) e.className = clase;
+  if (texto !== undefined) e.textContent = texto;
+  return e;
 }
 
-const hexARgba = (hex: string, a: number) => {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
-};
+function bloque(etiqueta: string, ...contenido: HTMLElement[]): HTMLElement {
+  const b = el('div', 'bloque-modal');
+  b.append(el('div', 'campo-etiqueta', etiqueta), ...contenido);
+  return b;
+}
 
-/* ═════════ Editar: nombre, color del borde y color del relleno ═════════ */
+/** Fila de muestras de color: la paleta de capas más una muestra libre (selector de color del sistema). */
+function muestras(inicial: string, aria: string): { caja: HTMLElement; valor: () => string } {
+  let actual = inicial.toLowerCase();
+  const caja = el('div', 'muestras');
+  caja.setAttribute('role', 'group');
+  caja.setAttribute('aria-label', aria);
+  const botones = PALETA.map((c) => {
+    const b = el('button', 'muestra');
+    b.type = 'button';
+    b.style.background = c;
+    b.setAttribute('aria-label', c);
+    b.addEventListener('click', () => {
+      actual = c.toLowerCase();
+      pintar();
+    });
+    caja.append(b);
+    return { b, c: c.toLowerCase() };
+  });
+  const libre = el('label', 'muestra muestra-libre');
+  libre.title = 'Otro color';
+  const input = el('input');
+  input.type = 'color';
+  input.setAttribute('aria-label', 'Otro color');
+  input.addEventListener('input', () => {
+    actual = input.value.toLowerCase();
+    pintar();
+  });
+  libre.append(input);
+  caja.append(libre);
+
+  function pintar(): void {
+    const enPaleta = botones.some((x) => x.c === actual);
+    botones.forEach(({ b, c }) => b.setAttribute('aria-pressed', String(c === actual)));
+    libre.setAttribute('aria-pressed', String(!enPaleta));
+    libre.style.background = enPaleta ? '' : actual;
+    input.value = actual;
+  }
+  pintar();
+  return { caja, valor: () => actual };
+}
+
+/* ═════════ Editar: nombre, color del borde, color del relleno y opacidad ═════════ */
 export function abrirEditorCapa(capa: CapaProyecto, proyecto: GestorProyecto): void {
-  const cont = document.createElement('div');
+  const cont = el('div');
+  cont.style.display = 'flex';
+  cont.style.flexDirection = 'column';
+  cont.style.gap = '16px';
 
-  const nombre = document.createElement('input');
+  const nombre = el('input', 'campo-texto');
   nombre.type = 'text';
-  nombre.className = 'modal-input';
   nombre.maxLength = 80;
   nombre.value = capa.nombre;
   nombre.autocomplete = 'off';
 
-  const borde = document.createElement('input');
-  borde.type = 'color';
-  borde.className = 'color-input';
-  borde.value = capa.color;
-  borde.setAttribute('aria-label', 'Color del borde');
+  const borde = muestras(capa.color, 'Color del borde');
+  const relleno = muestras(colorRelleno(capa), 'Color del relleno');
 
-  const relleno = document.createElement('input');
-  relleno.type = 'color';
-  relleno.className = 'color-input';
-  relleno.value = colorRelleno(capa);
-  relleno.setAttribute('aria-label', 'Color del relleno');
+  const rango = el('input', 'rango');
+  rango.type = 'range';
+  rango.min = '0';
+  rango.max = '100';
+  rango.step = '5';
+  rango.value = String(Math.round(opacidadRelleno(capa) * 100));
+  rango.setAttribute('aria-label', 'Opacidad del relleno');
+  const valorRango = el('span', 'dato-mono', `${rango.value}%`);
+  rango.addEventListener('input', () => (valorRango.textContent = `${rango.value}%`));
+  const cabRango = el('div', 'cab-etiqueta');
+  cabRango.append(el('span', 'campo-etiqueta', 'Opacidad del relleno'), valorRango);
+  const bloqueRango = el('div', 'bloque-modal');
+  bloqueRango.append(cabRango, rango);
 
-  const vista = document.createElement('div');
-  vista.className = 'vista-capa';
-  const pintar = () => {
-    vista.style.borderColor = borde.value;
-    vista.style.background = hexARgba(relleno.value, OPACIDAD_RELLENO);
-  };
-  borde.addEventListener('input', pintar);
-  relleno.addEventListener('input', pintar);
-  pintar();
-
-  const colores = document.createElement('div');
-  colores.className = 'colores-fila';
-  const colBorde = document.createElement('div');
-  colBorde.className = 'color-col';
-  colBorde.append(Object.assign(document.createElement('div'), { className: 'modal-label', textContent: 'Color del borde' }), borde);
-  const colRelleno = document.createElement('div');
-  colRelleno.className = 'color-col';
-  colRelleno.append(Object.assign(document.createElement('div'), { className: 'modal-label', textContent: 'Color del relleno' }), relleno);
-  colores.append(colBorde, colRelleno, vista);
-
-  cont.append(campo('Nombre', nombre), colores);
+  cont.append(bloque('Nombre', nombre), bloque('Color del borde', borde.caja), bloque('Color del relleno', relleno.caja), bloqueRango);
 
   abrirModal({
-    titulo: 'Editar capa',
+    etiqueta: 'Editar capa',
+    titulo: capa.nombre,
     contenido: cont,
     botones: [
-      { texto: 'Cancelar', clase: 'gris' },
+      { texto: 'Cancelar', clase: 'suave' },
       {
         texto: 'Guardar',
-        clase: 'azul',
+        clase: 'acento',
         alPulsar: (cerrar) => {
-          if (!proyecto.editar(capa.id, { nombre: nombre.value, color: borde.value, relleno: relleno.value })) {
-            mostrarAviso('Escribe un nombre para la capa.', 'error');
-            return;
-          }
+          const ok = proyecto.editar(capa.id, {
+            nombre: nombre.value,
+            color: borde.valor(),
+            relleno: relleno.valor(),
+            opacidad: Number(rango.value) / 100,
+          });
+          if (!ok) return mostrarAviso('Escribe un nombre para la capa.', 'error');
           cerrar();
         },
       },
@@ -98,25 +129,59 @@ export function abrirEditorCapa(capa: CapaProyecto, proyecto: GestorProyecto): v
 
 /* ═════════ Descargar / compartir (sin modo colaborativo ni enlace; con Sync) ═════════ */
 export function abrirCompartirCapa(capa: CapaProyecto, proyecto: GestorProyecto): void {
-  const cont = document.createElement('div');
-  const sub = document.createElement('div');
-  sub.className = 'modal-sub';
-  sub.textContent = capa.nombre;
+  const cont = el('div');
+  cont.style.display = 'flex';
+  cont.style.flexDirection = 'column';
+  cont.style.gap = '16px';
 
-  // Descargar como
-  const etDl = document.createElement('div');
-  etDl.className = 'modal-label';
-  etDl.textContent = 'Descargar como';
-  const fila = document.createElement('div');
-  fila.className = 'dl-fila';
-  const formatos: [FormatoExport, string][] = [['kml', 'KML'], ['shp', 'SHP'], ['xlsx', 'XLSX']];
+  const avisoNube = (e: unknown) =>
+    mostrarAviso(e instanceof NubeNoDisponible ? e.message : `No se pudo completar: ${msg(e)}`, 'error');
+
+  // Compartir con usuario
+  const correos = el('input', 'campo-texto');
+  correos.type = 'text';
+  correos.placeholder = 'correo@ejemplo.com, otro@ejemplo.com';
+  correos.autocomplete = 'off';
+  correos.disabled = !proyecto.nubeDisponible;
+  const enviar = el('button', 'btn btn-acento', 'Enviar');
+  enviar.type = 'button';
+  enviar.disabled = !puede('compartir_capas_proyecto');
+  enviar.addEventListener('click', async () => {
+    const lista = correos.value.split(/[,;]/).map((x) => x.trim().toLowerCase()).filter((x) => x.includes('@'));
+    if (!proyecto.nubeDisponible) return avisoNube(new NubeNoDisponible());
+    if (lista.length === 0) return mostrarAviso('Introduce al menos un correo válido.', 'error');
+    enviar.disabled = true;
+    try {
+      await proyecto.compartirCon(capa.id, lista);
+      mostrarAviso('Capa compartida.');
+      m.cerrar();
+    } catch (e) {
+      avisoNube(e);
+    } finally {
+      enviar.disabled = !puede('compartir_capas_proyecto');
+    }
+  });
+  const filaCorreo = el('div', 'fila-campo');
+  filaCorreo.append(correos, enviar);
+  const bCompartir = bloque('Compartir con usuario', filaCorreo);
+  if (!proyecto.nubeDisponible) bCompartir.append(el('p', 'nota', 'Disponible al conectar con Firebase.'));
+
+  // Descargar archivo
+  const rejilla = el('div', 'rejilla-3');
+  const formatos: [FormatoExport, string, string][] = [
+    ['kml', 'KML', iconoArchivoKml(22)],
+    ['shp', 'SHP', iconoArchivoZip(22)],
+    ['xlsx', 'XLSX', iconoArchivoXls(22)],
+  ];
   const puedeDescargar = puede('descargar_capas_proyecto');
-  for (const [f, texto] of formatos) {
-    const b = document.createElement('button');
+  for (const [f, texto, icono] of formatos) {
+    const b = el('button', 'btn btn-suave');
     b.type = 'button';
-    b.className = 'btn-dl';
-    b.innerHTML = iconoDescargar(14);
-    b.append(Object.assign(document.createElement('span'), { textContent: texto }));
+    b.style.flexDirection = 'column';
+    b.style.gap = '4px';
+    b.style.minHeight = '60px';
+    b.innerHTML = `<span class="icono-acento" style="display:inline-flex">${icono}</span>`;
+    b.append(el('span', undefined, texto));
     b.disabled = !puedeDescargar;
     b.addEventListener('click', async () => {
       b.disabled = true;
@@ -129,79 +194,31 @@ export function abrirCompartirCapa(capa: CapaProyecto, proyecto: GestorProyecto)
         b.disabled = !puedeDescargar;
       }
     });
-    fila.append(b);
+    rejilla.append(b);
   }
 
-  // Compartir con usuario
-  const sep = document.createElement('div');
-  sep.className = 'modal-sep';
-  const etCo = document.createElement('div');
-  etCo.className = 'modal-label';
-  etCo.textContent = 'Compartir con usuario';
-  const correos = document.createElement('input');
-  correos.type = 'text';
-  correos.className = 'modal-input';
-  correos.placeholder = 'usuario@correo.com, otro@correo.com';
-  correos.autocomplete = 'off';
-  correos.disabled = !proyecto.nubeDisponible;
-  const nota = document.createElement('div');
-  nota.className = 'modal-nota';
-  nota.textContent = proyecto.nubeDisponible ? '' : 'Disponible al conectar con Firebase.';
-  nota.hidden = proyecto.nubeDisponible;
-
-  cont.append(sub, etDl, fila, sep, etCo, correos, nota);
-
-  const avisoNube = (e: unknown) =>
-    mostrarAviso(e instanceof NubeNoDisponible ? e.message : `No se pudo completar: ${msg(e)}`, 'error');
-
-  const m = abrirModal({
-    titulo: 'Descargar / Compartir',
-    contenido: cont,
-    botones: [
-      { texto: 'Cancelar', clase: 'gris' },
-      {
-        texto: 'Sync',
-        clase: 'gris',
-        alPulsar: async (_c, b) => {
-          b.disabled = true;
-          try {
-            await proyecto.sincronizar(capa.id);
-            mostrarAviso(`«${capa.nombre}» sincronizada: copia guardada en la nube.`);
-          } catch (e) {
-            avisoNube(e);
-          } finally {
-            b.disabled = false;
-          }
-        },
-      },
-      {
-        texto: 'Enviar',
-        clase: 'azul',
-        alPulsar: async (cerrar, b) => {
-          const lista = correos.value.split(/[,;]/).map((x) => x.trim().toLowerCase()).filter((x) => x.includes('@'));
-          if (!proyecto.nubeDisponible) return avisoNube(new NubeNoDisponible());
-          if (lista.length === 0) return mostrarAviso('Introduce al menos un correo válido.', 'error');
-          b.disabled = true;
-          try {
-            await proyecto.compartirCon(capa.id, lista);
-            mostrarAviso('Capa compartida.');
-            cerrar();
-          } catch (e) {
-            avisoNube(e);
-          } finally {
-            b.disabled = false;
-          }
-        },
-      },
-    ],
+  // Sync
+  const sync = el('button', 'btn btn-suave btn-bloque');
+  sync.type = 'button';
+  sync.innerHTML = `<span class="icono-acento" style="display:inline-flex">${capa.sincronizadaEn ? iconoNube(16) : iconoSync(16)}</span>`;
+  sync.append(el('span', undefined, 'Sync'));
+  sync.disabled = !puede('sincronizar_capas_proyecto');
+  sync.addEventListener('click', async () => {
+    sync.disabled = true;
+    try {
+      await proyecto.sincronizar(capa.id);
+      mostrarAviso(`«${capa.nombre}» sincronizada: copia guardada en la nube.`);
+    } catch (e) {
+      avisoNube(e);
+    } finally {
+      sync.disabled = !puede('sincronizar_capas_proyecto');
+    }
   });
-  // Iconos en Sync y Enviar, como los botones de GEOmapas
-  m.botones[1]!.insertAdjacentHTML('afterbegin', iconoSync(14));
-  m.botones[2]!.insertAdjacentHTML('afterbegin', iconoEnviar(14));
-  m.botones[1]!.classList.add('con-icono');
-  m.botones[2]!.classList.add('con-icono');
-  m.botones[1]!.disabled = !puede('sincronizar_capas_proyecto');
-  m.botones[2]!.disabled = !puede('compartir_capas_proyecto');
+  const bSync = el('div', 'separador');
+  bSync.append(sync);
+
+  cont.append(bCompartir, bloque('Descargar archivo', rejilla), bSync);
+  const m = abrirModal({ etiqueta: 'Descargar / Compartir', titulo: capa.nombre, contenido: cont });
 }
 
 /* ═════════ Añadir capa: busca entre las guardadas (dispositivo y nube) ═════════ */
@@ -214,51 +231,54 @@ export function abrirAnadirCapa(
     alCargarArchivos: (archivos: File[]) => Promise<void>;
   },
 ): void {
-  const cont = document.createElement('div');
+  const cont = el('div');
+  cont.style.display = 'flex';
+  cont.style.flexDirection = 'column';
+  cont.style.gap = '16px';
   let confirmando: string | null = null;
 
-  const secLocal = document.createElement('div');
-  const secNube = document.createElement('div');
+  const secLocal = el('div');
+  const secNube = el('div');
 
-  const etiqueta = (t: string) => Object.assign(document.createElement('div'), { className: 'modal-label', textContent: t });
-
-  const fila = (titulo: string, subtexto: string, ...acciones: HTMLElement[]) => {
-    const f = document.createElement('div');
-    f.className = 'guardada-row';
-    const t = document.createElement('div');
-    t.className = 'guardada-txt';
-    t.append(
-      Object.assign(document.createElement('span'), { className: 'capa-nombre', textContent: titulo }),
-      Object.assign(document.createElement('span'), { className: 'capa-sub', textContent: subtexto }),
-    );
-    const a = document.createElement('div');
-    a.className = 'guardada-acc';
-    a.append(...acciones);
-    f.append(t, a);
+  const fila = (titulo: string, sub: string, ...acciones: HTMLElement[]) => {
+    const f = el('div', 'fila');
+    const izq = el('div', 'fila-izq');
+    izq.style.flexDirection = 'column';
+    izq.style.alignItems = 'flex-start';
+    izq.style.gap = '0';
+    izq.append(el('span', 'fila-nombre', titulo), el('span', 'fila-sub', sub));
+    const der = el('div', 'fila-der');
+    der.append(...acciones);
+    f.append(izq, der);
     return f;
+  };
+  const mini = (texto: string, clase: string, alPulsar: () => void): HTMLButtonElement => {
+    const b = el('button', `btn btn-mini ${clase}`, texto);
+    b.type = 'button';
+    b.addEventListener('click', alPulsar);
+    return b;
   };
 
   const pintarLocal = () => {
-    secLocal.replaceChildren(etiqueta('Guardadas en este dispositivo'));
-    const lista = proyecto.guardadas;
-    if (lista.length === 0) {
-      secLocal.append(Object.assign(document.createElement('div'), { className: 'proy-vacio', textContent: 'No hay capas guardadas.' }));
+    secLocal.replaceChildren(el('div', 'etiqueta-sec', 'Guardadas en este dispositivo'));
+    const lista = el('div', 'lista-div');
+    secLocal.append(lista);
+    if (proyecto.guardadas.length === 0) {
+      lista.append(el('div', 'vacio', 'No hay capas guardadas.'));
       return;
     }
-    for (const c of lista) {
+    for (const c of proyecto.guardadas) {
       if (c.id === confirmando) {
-        const f = document.createElement('div');
-        f.className = 'guardada-row confirmar';
-        f.append(Object.assign(document.createElement('div'), { className: 'proy-confirmar-txt', textContent: `¿Eliminar «${c.nombre}» para siempre? No se puede deshacer.` }));
-        const botones = document.createElement('div');
-        botones.className = 'tk-botones';
-        const no = Object.assign(document.createElement('button'), { type: 'button', className: 'btn-grande gris', textContent: 'Cancelar' });
-        no.addEventListener('click', () => {
+        const f = el('div', 'fila');
+        f.style.flexDirection = 'column';
+        f.style.alignItems = 'stretch';
+        f.append(el('p', 'nota', `¿Eliminar «${c.nombre}» para siempre? No se puede deshacer.`));
+        const botones = el('div', 'tk-botones');
+        const no = mini('Cancelar', 'btn-suave', () => {
           confirmando = null;
           pintarLocal();
         });
-        const si = Object.assign(document.createElement('button'), { type: 'button', className: 'btn-grande rojo', textContent: 'Eliminar' });
-        si.addEventListener('click', async () => {
+        const si = mini('Eliminar', 'btn-coral', async () => {
           si.disabled = no.disabled = true;
           try {
             await proyecto.eliminar(c.id);
@@ -270,18 +290,18 @@ export function abrirAnadirCapa(
         });
         botones.append(no, si);
         f.append(botones);
-        secLocal.append(f);
+        lista.append(f);
         continue;
       }
-      const anadir = Object.assign(document.createElement('button'), { type: 'button', className: 'sec', textContent: 'Añadir' });
-      anadir.disabled = !puede('anadir_capas_proyecto');
-      anadir.addEventListener('click', () => {
+      const anadir = mini('Añadir', 'btn-acento', () => {
         proyecto.ponerEnPanel(c.id);
         m.cerrar();
         opts.alElegir(c.id);
       });
-      const borrar = Object.assign(document.createElement('button'), { type: 'button', className: 'proy-borrar' });
-      borrar.innerHTML = iconoPapelera(16);
+      anadir.disabled = !puede('anadir_capas_proyecto');
+      const borrar = el('button', 'btn-icono peligro');
+      borrar.type = 'button';
+      borrar.innerHTML = iconoCerrar(16);
       borrar.title = 'Eliminar para siempre';
       borrar.setAttribute('aria-label', `Eliminar ${c.nombre} para siempre`);
       borrar.hidden = !puede('eliminar_capas_proyecto');
@@ -289,31 +309,32 @@ export function abrirAnadirCapa(
         confirmando = c.id;
         pintarLocal();
       });
-      secLocal.append(fila(c.nombre, `${c.nElementos} elementos`, anadir, borrar));
+      lista.append(fila(c.nombre, `${c.nElementos} elementos`, anadir, borrar));
     }
   };
 
   const pintarNube = async () => {
-    secNube.replaceChildren(etiqueta('En la nube'));
+    secNube.replaceChildren(el('div', 'etiqueta-sec', 'En la nube'));
     if (!proyecto.nubeDisponible) {
-      secNube.append(Object.assign(document.createElement('div'), { className: 'proy-vacio', textContent: 'Nube no conectada todavía.' }));
+      secNube.append(el('div', 'vacio', 'Nube no conectada todavía.'));
       return;
     }
-    secNube.append(Object.assign(document.createElement('div'), { className: 'proy-vacio', textContent: 'Buscando…' }));
+    secNube.append(el('div', 'vacio', 'Buscando…'));
     let fichas: FichaNube[] = [];
     try {
       fichas = await proyecto.listarEnNube();
     } catch (e) {
       mostrarAviso(`No se pudo consultar la nube: ${msg(e)}`, 'error');
     }
-    secNube.replaceChildren(etiqueta('En la nube'));
+    secNube.replaceChildren(el('div', 'etiqueta-sec', 'En la nube'));
+    const lista = el('div', 'lista-div');
+    secNube.append(lista);
     if (fichas.length === 0) {
-      secNube.append(Object.assign(document.createElement('div'), { className: 'proy-vacio', textContent: 'No hay más capas en la nube.' }));
+      lista.append(el('div', 'vacio', 'No hay más capas en la nube.'));
       return;
     }
     for (const f of fichas) {
-      const bajar = Object.assign(document.createElement('button'), { type: 'button', className: 'sec', textContent: 'Descargar' });
-      bajar.addEventListener('click', async () => {
+      const bajar = mini('Descargar', 'btn-suave', async () => {
         bajar.disabled = true;
         try {
           const c = await proyecto.recuperarDeNube(f.id);
@@ -324,16 +345,19 @@ export function abrirAnadirCapa(
           bajar.disabled = false;
         }
       });
-      secNube.append(fila(f.nombre, `${f.nElementos} elementos`, bajar));
+      lista.append(fila(f.nombre, `${f.nElementos} elementos`, bajar));
     }
   };
 
   // Cargar un archivo nuevo desde el dispositivo
-  const selector = Object.assign(document.createElement('input'), { type: 'file', multiple: true, hidden: true }); // sin "accept": en Android los .shp/.dbf/.kml saldrían en gris
-  const cargar = document.createElement('button');
+  const selector = el('input');
+  selector.type = 'file';
+  selector.multiple = true;
+  selector.hidden = true; // sin "accept": en Android los .shp/.dbf/.kml saldrían en gris
+  const cargar = el('button', 'btn btn-suave btn-bloque');
   cargar.type = 'button';
-  cargar.className = 'btn-anadir';
-  cargar.innerHTML = `${iconoMas(16)}<span>Cargar archivo…</span>`;
+  cargar.innerHTML = `<span class="icono-acento" style="display:inline-flex">${iconoMas(14)}</span>`;
+  cargar.append(el('span', undefined, 'Cargar archivo…'));
   cargar.hidden = !puede('anadir_capas_proyecto');
   cargar.addEventListener('click', () => selector.click());
   selector.addEventListener('change', async () => {
@@ -346,7 +370,7 @@ export function abrirAnadirCapa(
 
   cont.append(secLocal, secNube, cargar, selector);
   const unsub = proyecto.suscribir(pintarLocal);
-  const m = abrirModal({ titulo: 'Añadir capa', contenido: cont, alCerrar: unsub });
+  const m = abrirModal({ etiqueta: 'Capas del proyecto', titulo: 'Añadir capa', contenido: cont, alCerrar: unsub });
   pintarLocal();
   void pintarNube();
 }

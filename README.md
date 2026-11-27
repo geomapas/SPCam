@@ -37,34 +37,22 @@ Cuando llegue Firebase, entra solo en `src/data/`.
 
 ## Aspecto y capas
 
-- **Estética:** copiada de GEOmapas (cristal translúcido, azul `#2f6fde`, DM Sans, esquinas de 12 px).
-  Todos los valores de diseño están al principio de `src/ui/shared/estilos.css`: cambia uno y cambia toda la app.
-  La tipografía va empaquetada (funciona sin conexión).
-- **Icono «Capas»** de la cabecera: abre el panel «Cartografía y capas», con tres secciones:
-  1. **Mapa base** (Ortofoto / Topográfico).
-  2. **Capas temáticas:** las precargadas (por ahora Recintos SIGPAC), con interruptor. La **rueda de ajustes**
-     permite elegir cuáles de las precargadas se ofrecen en la lista; una capa quitada de la lista tampoco se ve en el mapa.
-  3. **Capas del proyecto:** archivos que carga el usuario (**SHP** en .zip o .shp + .dbf + .prj, **GeoJSON** y **KML**).
-     Cada capa tiene: interruptor de visibilidad, punto de color (cambio rápido del borde), «ir a la capa» (tocar el nombre),
-     **editar** (nombre, color del borde y color del relleno), **descargar / compartir** y **quitar del panel**.
-     Al tocar un elemento en el mapa salen sus atributos.
-     - **De lejos se ven como pinpoints** (una chincheta por elemento) y **desde el zoom 14 como geometrías**, igual que GEOmapas
-       (`UMBRAL_PINS_ZOOM` en `src/config.ts`). En capas de más de 3000 elementos los pines son puntos sueltos, más ligeros.
-     - **Descargar / compartir:** KML, SHP (zip; una capa con geometrías mezcladas se divide en un shapefile por tipo) y XLSX (tabla de atributos).
-       En el móvil abre «compartir» (Drive, WhatsApp, Archivos…); en el navegador descarga directamente.
-       **Sync** sube la capa a la nube; **Enviar** la comparte con otro usuario por correo. Ambos necesitan Firebase y hoy avisan de que la nube no está conectada.
-       No hay modo colaborativo ni enlace.
-     - **Quitar del panel no borra:** la capa sigue guardada en el dispositivo. **Añadir capa** abre un buscador de capas guardadas
-       (en el dispositivo y, cuando exista, en la nube) para volver a ponerlas; desde ahí también se puede eliminar para siempre
-       (con confirmación) o **cargar un archivo nuevo**.
-- Las capas del proyecto se **guardan en el dispositivo** (funcionan sin conexión). La interfaz de la nube (`src/domain/capas/nube.ts`)
-  ya está definida; la implementación con Firebase llega con el inicio de sesión (pasos 3 y 5 del plan).
+- **Diseño:** reglas en `DISENO.md` y `src/ui/shared/estilos.css` (tokens claro/oscuro y componentes). Mapa a pantalla completa con la interfaz flotando encima:
+  cabecera (logo + usuario + recorrido), dock inferior (mapa base, capas, ajustes), popovers, hojas inferiores y ventanas.
+  Tipografías (Inter y JetBrains Mono) e iconos (Phosphor) van empaquetados: funciona sin conexión.
+- **Tema:** oscuro por defecto; claro desde **Ajustes → Apariencia**. Se recuerda en el dispositivo.
+- **Mapa base:** la miniatura del dock muestra el actual; al tocarla se elige entre Ortofoto y Mapa.
+- **Hoja «Capas»:**
+  1. **Capas temáticas:** las precargadas (por ahora Recintos SIGPAC). La rueda de ajustes elige cuáles aparecen en la lista; una capa quitada de la lista tampoco se ve en el mapa.
+  2. **Capas del proyecto:** archivos que carga el usuario (**SHP** en .zip o .shp + .dbf + .prj, **GeoJSON** y **KML**). Cada capa, en una línea: nombre (ir a la capa), **editar** (nombre, color del borde, color y opacidad del relleno), **descargar / compartir**, **quitar del panel** e interruptor de visibilidad.
+     - De lejos se ven como pinpoints y desde el zoom 14 como geometrías (`UMBRAL_PINS_ZOOM` en `src/config.ts`).
+     - **Descargar / compartir:** KML, SHP (zip; geometrías mezcladas → un shapefile por tipo) y XLSX. En el móvil abre «compartir»; en el navegador descarga. **Sync** y **Enviar** necesitan Firebase y hoy avisan de que la nube no está conectada.
+     - **Quitar del panel no borra:** la capa sigue guardada en el dispositivo. **Añadir capa** busca entre las guardadas (dispositivo y, cuando exista, nube); desde ahí también se elimina para siempre (con confirmación) o se **carga un archivo nuevo**.
+- Las capas del proyecto se **guardan en el dispositivo** (funcionan sin conexión). La interfaz de la nube (`src/domain/capas/nube.ts`) está definida; la implementación con Firebase llega con el inicio de sesión.
 - Un SHP sin `.prj` solo se admite si ya está en grados (WGS84); si no, la carga avisa de que falta el `.prj`.
-- **Añadir o quitar una capa precargada** = editar `src/domain/capas/catalogo.ts`. Lo elegido se guarda en el dispositivo.
-- **Permisos:** `src/domain/permisos.ts` tiene la lista de permisos. Cada función nueva se añade ahí
-  con «sí» para todos los perfiles; se ajusta al final.
+- **Añadir o quitar una capa precargada** = editar `src/domain/capas/catalogo.ts`.
+- **Permisos:** `src/domain/permisos.ts` tiene la lista; cada función nueva se añade con «sí» para todos los perfiles y se ajusta al final.
 - Las capas WMS **necesitan conexión**. El mapa sin cobertura llega con la descarga de zonas (paso 6).
-  Antes de guardar teselas de cualquier fuente hay que comprobar sus condiciones de uso.
 
 ## Cómo funciona la grabación
 
@@ -123,13 +111,13 @@ un sitio seguro y con copia**: sin ella no podrás actualizar las instalaciones 
 ## Prueba de campo (la que decide si el plugin sirve)
 
 1. Abre la app y concede **ubicación** y **notificaciones** cuando las pida.
-2. Pulsa el **icono de recorrido** → **Iniciar recorrido**. El icono se pone rojo y aparece la notificación permanente «SPCam: grabando recorrido».
+2. Pulsa el **botón del recorrido** (arriba a la derecha) → **Iniciar track**. El botón se pone coral y aparece la notificación permanente «SPCam: grabando recorrido».
 3. Ajustes del móvil → Batería → SPCam → **Sin restricciones** (o «No optimizar»).
    Xiaomi/Huawei/Samsung/Oppo tienen además un «inicio automático» o «apps protegidas»: actívalo.
 4. Cierra el panel, **bloquea la pantalla y camina 15-20 minutos** (mejor 30+ para pasar el corte de 5 minutos).
    Prueba también una **pausa** en mitad del recorrido y reanuda.
-5. Desbloquea: el icono debe seguir rojo y el contador de puntos debe haber subido.
-6. **Finalizar** → **Ver** y **GPX**; abre el GPX en el ordenador.
+5. Desbloquea: el botón debe seguir coral y el contador de puntos debe haber subido.
+6. **Finalizar** → en la lista, **Ver** y **GPX**; abre el GPX en el ordenador.
 7. Prueba de muerte de la app: con grabación en curso, desliza la app fuera de recientes, espera
    un minuto y reábrela. Debe aparecer el aviso de recorrido recuperado.
 

@@ -1,22 +1,20 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#2f6fde" />
+    <meta name="theme-color" content="#090a0c" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <title>SPCam · Gestor</title>
+    <!-- Aplica el tema guardado antes de pintar (evita el parpadeo). Oscuro por defecto. -->
+    <script>
+      try {
+        if (localStorage.getItem('spcam.tema') === 'claro') document.documentElement.classList.remove('dark');
+      } catch (e) {}
+    </script>
   </head>
   <body>
-    <div class="mapa-wrap"><div id="mapa"></div></div>
-    <section class="panel">
-      <div class="fila">
-        <label class="carga-gpx">Cargar un GPX para comprobar la capa compartida:
-          <input id="archivo" type="file" accept=".gpx,application/gpx+xml,text/xml" />
-        </label>
-      </div>
-      <div class="estado" id="estado">Esqueleto del gestor. Aquí irán datos, zonas y exportaciones.</div>
-    </section>
+    <div id="mapa"></div>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>

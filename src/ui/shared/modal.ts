@@ -1,10 +1,10 @@
+import { iconoCerrar } from './iconos';
+
 export interface BotonModal {
   texto: string;
-  clase?: 'azul' | 'rojo' | 'gris' | 'ambar';
+  clase?: 'acento' | 'suave' | 'coral' | 'ambar';
   /** Qué hacer al pulsar. Si no se indica, el botón solo cierra la ventana. */
   alPulsar?: (cerrar: () => void, boton: HTMLButtonElement) => void | Promise<void>;
-  /** Con alPulsar: false = la ventana sigue abierta salvo que alPulsar la cierre. Por defecto false. */
-  cierra?: boolean;
 }
 
 export interface ModalAbierto {
@@ -13,10 +13,11 @@ export interface ModalAbierto {
 }
 
 /**
- * Ventana modal sencilla (fondo oscurecido + tarjeta), con el aspecto de las de GEOmapas.
- * Se cierra con Escape, tocando fuera o con un botón. Por defecto lleva un único botón «Cerrar».
+ * Ventana centrada (tarjeta redondeada sobre fondo oscurecido): etiqueta pequeña + título, X para cerrar,
+ * contenido y, opcionalmente, botones de acción. Se cierra con la X, tocando fuera o con Escape.
  */
 export function abrirModal(opts: {
+  etiqueta?: string;
   titulo: string;
   contenido: HTMLElement;
   botones?: BotonModal[];
@@ -30,15 +31,27 @@ export function abrirModal(opts: {
   tarjeta.setAttribute('aria-modal', 'true');
   tarjeta.setAttribute('aria-label', opts.titulo);
 
-  const titulo = document.createElement('div');
-  titulo.className = 'modal-titulo';
-  titulo.textContent = opts.titulo;
+  const cab = document.createElement('div');
+  cab.className = 'modal-cab';
+  const textos = document.createElement('div');
+  if (opts.etiqueta) {
+    const e = document.createElement('p');
+    e.className = 'modal-etiqueta';
+    e.textContent = opts.etiqueta;
+    textos.append(e);
+  }
+  const t = document.createElement('h3');
+  t.className = 'modal-titulo';
+  t.textContent = opts.titulo;
+  textos.append(t);
+  const x = document.createElement('button');
+  x.type = 'button';
+  x.className = 'btn-cerrar';
+  x.setAttribute('aria-label', 'Cerrar');
+  x.innerHTML = iconoCerrar(14);
+  cab.append(textos, x);
 
-  const acciones = document.createElement('div');
-  acciones.className = 'modal-acciones';
-
-  tarjeta.append(titulo, opts.contenido, acciones);
-  fondo.append(tarjeta);
+  tarjeta.append(cab, opts.contenido);
 
   let abierto = true;
   const alTeclado = (ev: KeyboardEvent) => {
@@ -52,23 +65,30 @@ export function abrirModal(opts: {
     opts.alCerrar?.();
   }
 
-  const botones = (opts.botones ?? [{ texto: 'Cerrar', clase: 'gris' }]).map((def) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = `btn-grande ${def.clase ?? 'gris'}`;
-    b.textContent = def.texto;
-    b.addEventListener('click', async () => {
-      if (!def.alPulsar) return cerrar();
-      await def.alPulsar(cerrar, b);
-      if (def.cierra) cerrar();
-    });
-    acciones.append(b);
-    return b;
-  });
+  const botones: HTMLButtonElement[] = [];
+  if (opts.botones?.length) {
+    const acciones = document.createElement('div');
+    acciones.className = 'modal-acciones';
+    for (const def of opts.botones) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = `btn btn-${def.clase ?? 'suave'}`;
+      b.textContent = def.texto;
+      b.addEventListener('click', async () => {
+        if (!def.alPulsar) return cerrar();
+        await def.alPulsar(cerrar, b);
+      });
+      acciones.append(b);
+      botones.push(b);
+    }
+    tarjeta.append(acciones);
+  }
 
+  x.addEventListener('click', cerrar);
   fondo.addEventListener('click', (ev) => {
     if (ev.target === fondo) cerrar();
   });
+  fondo.append(tarjeta);
   document.addEventListener('keydown', alTeclado);
   document.body.append(fondo);
   return { cerrar, botones };

@@ -73,7 +73,7 @@ export const MAPAS_BASE: readonly MapaBase[] = [
   },
   {
     id: 'topografico',
-    nombre: 'Topográfico',
+    nombre: 'Mapa',
     etiqueta: 'Mapa',
     icono: 'mapa',
     // PROVISIONAL: OpenStreetMap estándar. Sustituible por una fuente topográfica oficial.

@@ -5,13 +5,14 @@ import {
   CAPAS_TEMATICAS,
   MAPAS_BASE,
   colorRelleno,
+  opacidadRelleno,
   type CapaProyecto,
   type EstadoCapas,
   type Fuente,
   type GestorCapas,
   type GestorProyecto,
 } from '@/domain/capas';
-import { LIMITE_PINES_ICONO, OPACIDAD_RELLENO, UMBRAL_PINS_ZOOM } from '@/config';
+import { LIMITE_PINES_ICONO, UMBRAL_PINS_ZOOM } from '@/config';
 import { porTramos } from '@/domain/tracks/geo';
 import type { TrackPoint } from '@/domain/types';
 import { mostrarAviso } from './aviso';
@@ -44,10 +45,10 @@ function crearCapaLeaflet(f: Fuente, zIndex: number): L.TileLayer {
 const esPunto = (f?: Feature) => f?.geometry?.type === 'Point' || f?.geometry?.type === 'MultiPoint';
 
 /** Estilo de una capa del proyecto: borde y relleno propios (relleno suave en polígonos) y círculo blanco en puntos. */
-const estiloCapa = (color: string, relleno: string) => (f?: Feature): L.PathOptions & { radius?: number } =>
+const estiloCapa = (color: string, relleno: string, opacidad: number) => (f?: Feature): L.PathOptions & { radius?: number } =>
   esPunto(f)
     ? { radius: 6, color: '#ffffff', weight: 1.5, fillColor: relleno, fillOpacity: 0.9 }
-    : { color, weight: 2, opacity: 0.95, fillColor: relleno, fillOpacity: OPACIDAD_RELLENO };
+    : { color, weight: 2, opacity: 0.95, fillColor: relleno, fillOpacity: opacidad };
 
 /** Chincheta de GEOmapas (misma forma), con el color de la capa. */
 const iconoPin = (color: string) =>
@@ -137,6 +138,7 @@ interface EntradaProyecto {
   pines: L.FeatureGroup | null;
   color: string;
   relleno: string;
+  opacidad: number;
   cargando: boolean;
 }
 
@@ -193,7 +195,7 @@ export function crearMapa(contenedor: HTMLElement): MapaApp {
     // Leaflet pasa estas opciones a cada geometría; los tipos no declaran `renderer` aquí, de ahí el cast.
     const opciones = {
       renderer: lienzo,
-      style: estiloCapa(c.color, colorRelleno(c)),
+      style: estiloCapa(c.color, colorRelleno(c), opacidadRelleno(c)),
       pointToLayer: (_f: Feature, ll: L.LatLng) => L.circleMarker(ll, { renderer: lienzo, radius: 6 }),
     } as L.GeoJSONOptions;
     const capa = L.geoJSON(datos, opciones);
@@ -220,10 +222,12 @@ export function crearMapa(contenedor: HTMLElement): MapaApp {
 
   const restilar = (e: EntradaProyecto, c: CapaProyecto): void => {
     const relleno = colorRelleno(c);
-    if (e.color === c.color && e.relleno === relleno) return;
+    const opacidad = opacidadRelleno(c);
+    if (e.color === c.color && e.relleno === relleno && e.opacidad === opacidad) return;
     e.color = c.color;
     e.relleno = relleno;
-    e.vector?.setStyle(estiloCapa(c.color, relleno));
+    e.opacidad = opacidad;
+    e.vector?.setStyle(estiloCapa(c.color, relleno, opacidad));
     e.pines?.eachLayer((m) => {
       if (m instanceof L.Marker) m.setIcon(iconoPin(c.color));
       else if (m instanceof L.CircleMarker) m.setStyle({ fillColor: c.color });
@@ -251,7 +255,7 @@ export function crearMapa(contenedor: HTMLElement): MapaApp {
     for (const c of lista) {
       let e = entradas.get(c.id);
       if (!e) {
-        e = { vector: null, pines: null, color: c.color, relleno: colorRelleno(c), cargando: false };
+        e = { vector: null, pines: null, color: c.color, relleno: colorRelleno(c), opacidad: opacidadRelleno(c), cargando: false };
         entradas.set(c.id, e);
       }
       restilar(e, c);
@@ -273,6 +277,7 @@ export function crearMapa(contenedor: HTMLElement): MapaApp {
             entrada.pines = crearPines(datos, actual);
             entrada.color = actual.color;
             entrada.relleno = colorRelleno(actual);
+            entrada.opacidad = opacidadRelleno(actual);
             reconciliar();
           })
           .catch((err) => {
@@ -319,7 +324,7 @@ export class Traza {
   private tramos: L.LatLngTuple[][] = [];
   private segActual: number | null = null;
 
-  constructor(private readonly mapa: L.Map, color = '#d93025') {
+  constructor(private readonly mapa: L.Map, color = '#fb7185') {
     if (!mapa.getPane('trazas')) mapa.createPane('trazas').style.zIndex = '450';
     this.linea = L.polyline([], { color, weight: 4, pane: 'trazas' }).addTo(mapa);
     this.posicion = L.circleMarker([0, 0], {

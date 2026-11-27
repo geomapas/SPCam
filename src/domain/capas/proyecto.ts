@@ -2,6 +2,7 @@ import type { FeatureCollection } from 'geojson';
 import { leerCapasDeArchivos } from '@/data/files/importarCapa';
 import { exportarCapa, type FormatoExport } from '@/data/files/exportarCapa';
 import { entregarArchivo } from '@/data/files/compartir';
+import { OPACIDAD_RELLENO } from '@/config';
 import { puede } from '@/domain/permisos';
 import { nubeNoConectada, NubeNoDisponible, type FichaNube, type Nube } from './nube';
 
@@ -13,6 +14,8 @@ export interface CapaProyecto {
   color: string;
   /** Color del relleno; si no hay, es el mismo que el borde */
   relleno?: string;
+  /** Opacidad del relleno (0 a 1); sin dato = la de GEOmapas */
+  opacidad?: number;
   visible: boolean;
   creada: number;
   nElementos: number;
@@ -44,6 +47,7 @@ const textoError = (e: unknown): string => {
 };
 
 export const colorRelleno = (c: Pick<CapaProyecto, 'color' | 'relleno'>): string => c.relleno ?? c.color;
+export const opacidadRelleno = (c: Pick<CapaProyecto, 'opacidad'>): number => c.opacidad ?? OPACIDAD_RELLENO;
 
 export class GestorProyecto {
   private _capas: CapaProyecto[] = [];
@@ -141,8 +145,8 @@ export class GestorProyecto {
     this.cambiar(id, { color });
   }
 
-  /** Edición completa: nombre, color del borde y color del relleno. Devuelve false si algo no es válido. */
-  editar(id: string, cambios: { nombre?: string; color?: string; relleno?: string }): boolean {
+  /** Edición completa: nombre, color del borde, color y opacidad del relleno. Devuelve false si algo no es válido. */
+  editar(id: string, cambios: { nombre?: string; color?: string; relleno?: string; opacidad?: number }): boolean {
     if (!puede('editar_capas_proyecto')) return false;
     if (!this._capas.some((c) => c.id === id)) return false;
     const nuevo: CambiosCapa = {};
@@ -158,6 +162,10 @@ export class GestorProyecto {
     if (cambios.relleno !== undefined) {
       if (!COLOR.test(cambios.relleno)) return false;
       nuevo.relleno = cambios.relleno;
+    }
+    if (cambios.opacidad !== undefined) {
+      if (!Number.isFinite(cambios.opacidad)) return false;
+      nuevo.opacidad = Math.min(1, Math.max(0, Math.round(cambios.opacidad * 100) / 100));
     }
     this.cambiar(id, nuevo);
     return true;

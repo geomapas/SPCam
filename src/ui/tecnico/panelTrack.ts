@@ -3,64 +3,72 @@ import { compartirGpx, listarTracksFinalizados } from '@/domain/tracks/repositor
 import { puntosDe, type Instantanea, type TrackRecorder } from '@/domain/tracks/trackRecorder';
 import type { TrackRecord } from '@/domain/types';
 import { mostrarAviso } from '@/ui/shared/aviso';
-import { iconoTrack } from '@/ui/shared/iconos';
+import { iconoDescargar, iconoPause, iconoPlay, iconoStop } from '@/ui/shared/iconos';
 import type { Traza } from '@/ui/shared/mapa';
-import { crearPanelFlotante } from '@/ui/shared/panelFlotante';
+import { crearPopover } from '@/ui/shared/superficies';
 
 const km = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`);
 const hora = (t: number) => new Date(t).toLocaleTimeString('es-ES');
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-type Clase = 'azul' | 'rojo' | 'ambar' | 'gris';
+function el<K extends keyof HTMLElementTagNameMap>(tag: K, clase?: string, texto?: string): HTMLElementTagNameMap[K] {
+  const e = document.createElement(tag);
+  if (clase) e.className = clase;
+  if (texto !== undefined) e.textContent = texto;
+  return e;
+}
 
 /**
- * Panel del recorrido: iniciar, pausar, reanudar y finalizar, más la lista de recorridos guardados.
+ * Panel del recorrido (popover bajo la cabecera): iniciar, pausar, continuar y finalizar, más la lista de recorridos guardados.
  * Este panel solo manda órdenes al grabador y pinta su estado: cerrarlo NO detiene la grabación.
+ * El botón de la cabecera se pone coral al grabar y ámbar en pausa (sin puntos que parpadeen).
  */
 export function montarPanelTrack(opts: {
   boton: HTMLButtonElement;
-  contenedor: HTMLElement;
   grabador: TrackRecorder;
-  /** Línea roja del recorrido en curso */
+  /** Línea del recorrido en curso */
   trazaEnCurso: Traza;
-  /** Línea azul de un recorrido guardado que se está consultando */
+  /** Línea de un recorrido guardado que se está consultando */
   trazaGuardada: Traza;
 }): void {
-  const { boton, contenedor, grabador, trazaEnCurso, trazaGuardada } = opts;
+  const { boton, grabador, trazaEnCurso, trazaGuardada } = opts;
   const verGrabar = puede('grabar_recorridos');
   const verLista = puede('ver_recorridos_guardados');
   if (!verGrabar && !verLista) return;
 
-  const panel = crearPanelFlotante({
-    titulo: 'Recorrido (track)',
-    icono: iconoTrack(14),
+  const cont = el('div');
+  const cab = el('div', 'popover-cab');
+  const stats = el('span', 'dato-mono');
+  cab.append(el('span', 'etiqueta-sec', 'Registro de track'), stats);
+  const botones = el('div', 'tk-botones');
+  const datos = el('div', 'tk-datos');
+  if (verGrabar) cont.append(cab, botones, datos);
+
+  const lista = el('div', 'lista-div');
+  if (verLista) {
+    const sec = el('div', 'tk-lista');
+    sec.append(el('div', 'etiqueta-sec', 'Recorridos guardados'), lista);
+    cont.append(sec);
+  }
+
+  const pop = crearPopover({
     boton,
-    contenedor,
+    zona: 'cabecera',
+    alinear: 'fin',
+    etiqueta: 'Recorrido (track)',
+    contenido: cont,
+    ancho: 'tk-ancho',
     alAbrir: () => void pintarLista(),
   });
 
   let confirmando = false;
   let ocupado = false;
 
-  // ── Estado y botones de grabación ──
-  const etiqueta = document.createElement('div');
-  const datos = document.createElement('div');
-  const botones = document.createElement('div');
-  if (verGrabar) {
-    etiqueta.className = 'tk-estado';
-    datos.className = 'tk-datos';
-    botones.className = 'tk-botones';
-    const sec = document.createElement('div');
-    sec.className = 'pc-sec';
-    sec.append(etiqueta, datos, botones);
-    panel.cuerpo.append(sec);
-  }
-
-  function btn(texto: string, clase: Clase, accion: () => Promise<void> | void): HTMLButtonElement {
-    const b = document.createElement('button');
+  function btn(texto: string, clase: string, icono: string, accion: () => Promise<void> | void): HTMLButtonElement {
+    const b = el('button', `btn ${clase}`);
     b.type = 'button';
-    b.className = `btn-grande ${clase}`;
-    b.textContent = texto;
+    b.innerHTML = icono;
+    b.append(document.createTextNode(texto));
     b.disabled = ocupado;
     b.addEventListener('click', () => void ejecutar(accion));
     return b;
@@ -83,17 +91,16 @@ export function montarPanelTrack(opts: {
   function pintar(i: Instantanea): void {
     if (!verGrabar) return;
     const reg = i.registro;
-    etiqueta.className = `tk-estado ${i.estado}`;
-    etiqueta.textContent =
-      i.estado === 'grabando' ? 'Grabando' : i.estado === 'pausado' ? 'En pausa' : 'Sin grabar';
-
+    stats.textContent = reg ? `${reg.pointCount} pts · ${km(reg.lengthM)}` : '';
     if (reg) {
-      let t = `${reg.pointCount} puntos · ${km(reg.lengthM)}`;
-      if (i.ultimo) t += ` · último ${hora(i.ultimo.t)} · ±${Math.round(i.ultimo.acc ?? 0)} m`;
-      else if (i.estado === 'grabando') t += ' · esperando el primer punto GPS…';
+      let t = '';
+      if (i.ultimo) t = `último ${hora(i.ultimo.t)} · ±${Math.round(i.ultimo.acc ?? 0)} m`;
+      else if (i.estado === 'grabando') t = 'esperando el primer punto GPS…';
+      if (i.estado === 'pausado') t = `en pausa${t ? ' · ' + t : ''}`;
       datos.textContent = t;
+      datos.hidden = !t;
     } else {
-      datos.textContent = 'Pulsa «Iniciar recorrido» para empezar.';
+      datos.hidden = true;
     }
 
     botones.replaceChildren();
@@ -101,7 +108,7 @@ export function montarPanelTrack(opts: {
       confirmando = false;
       botones.className = 'tk-botones uno';
       botones.append(
-        btn('Iniciar recorrido', 'azul', async () => {
+        btn('Iniciar track', 'btn-acento', iconoPlay(14), async () => {
           trazaEnCurso.limpiar();
           await grabador.iniciar();
         }),
@@ -111,8 +118,8 @@ export function montarPanelTrack(opts: {
     botones.className = 'tk-botones';
     if (confirmando) {
       botones.append(
-        btn('Cancelar', 'gris', () => void (confirmando = false)),
-        btn('Sí, finalizar', 'rojo', async () => {
+        btn('Cancelar', 'btn-suave', '', () => void (confirmando = false)),
+        btn('Sí, finalizar', 'btn-coral', iconoStop(14), async () => {
           confirmando = false;
           const fin = await grabador.parar();
           mostrarAviso(`Recorrido guardado: ${fin.pointCount} puntos, ${km(fin.lengthM)}.`);
@@ -123,21 +130,10 @@ export function montarPanelTrack(opts: {
     }
     botones.append(
       i.estado === 'grabando'
-        ? btn('Pausar', 'ambar', () => grabador.pausar())
-        : btn('Reanudar', 'azul', () => grabador.reanudar()),
-      btn('Finalizar', 'rojo', () => void (confirmando = true)),
+        ? btn('Pausar', 'btn-ambar', iconoPause(14), () => grabador.pausar())
+        : btn('Continuar', 'btn-acento', iconoPlay(14), () => grabador.reanudar()),
+      btn('Finalizar', 'btn-coral', iconoStop(14), () => void (confirmando = true)),
     );
-  }
-
-  // ── Recorridos guardados ──
-  const lista = document.createElement('ul');
-  lista.className = 'lista';
-  if (verLista) {
-    const sec = document.createElement('div');
-    sec.className = 'pc-sec';
-    sec.innerHTML = `<div class="pc-label">Recorridos guardados</div>`;
-    sec.append(lista);
-    panel.cuerpo.append(sec);
   }
 
   async function compartir(reg: TrackRecord): Promise<void> {
@@ -154,56 +150,50 @@ export function montarPanelTrack(opts: {
     const todos = await listarTracksFinalizados();
     lista.replaceChildren();
     if (todos.length === 0) {
-      const li = document.createElement('li');
-      li.textContent = 'Aún no hay recorridos.';
-      lista.append(li);
+      lista.append(el('div', 'vacio', 'Aún no hay recorridos.'));
       return;
     }
     for (const reg of todos) {
-      const li = document.createElement('li');
-      const info = document.createElement('span');
-      info.textContent = `${new Date(reg.startedAt).toLocaleString('es-ES')} · ${reg.pointCount} pts · ${km(reg.lengthM)}${reg.recuperado ? ' · recuperado' : ''}`;
-      const ver = document.createElement('button');
+      const f = el('div', 'fila');
+      const info = el(
+        'span',
+        'fila-nombre',
+        `${new Date(reg.startedAt).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · ${reg.pointCount} pts · ${km(reg.lengthM)}${reg.recuperado ? ' · recuperado' : ''}`,
+      );
+      const der = el('div', 'fila-der');
+      const ver = el('button', 'btn btn-mini btn-suave', 'Ver');
       ver.type = 'button';
-      ver.className = 'sec';
-      ver.textContent = 'Ver';
       ver.addEventListener('click', async () => {
         trazaGuardada.dibujar(await puntosDe(reg));
-        panel.cerrar();
+        pop.cerrar();
       });
-      const comp = document.createElement('button');
-      comp.type = 'button';
-      comp.className = 'sec';
-      comp.textContent = 'GPX';
-      comp.addEventListener('click', () => void compartir(reg));
-      const acciones = document.createElement('span');
-      acciones.className = 'fila';
-      acciones.append(ver, comp);
-      li.append(info, acciones);
-      lista.append(li);
+      const gpx = el('button', 'btn-icono');
+      gpx.type = 'button';
+      gpx.title = 'Compartir GPX';
+      gpx.setAttribute('aria-label', 'Compartir GPX');
+      gpx.innerHTML = iconoDescargar(16);
+      gpx.addEventListener('click', () => void compartir(reg));
+      der.append(ver, gpx);
+      f.append(info, der);
+      lista.append(f);
     }
   }
 
-  // El icono de la cabecera refleja el estado aunque el panel esté cerrado:
-  // rojo = grabando, ámbar = en pausa.
-  const pintarIcono = (i: Instantanea): void => {
+  // El botón de la cabecera refleja el estado aunque el panel esté cerrado: coral = grabando, ámbar = en pausa.
+  const pintarBoton = (i: Instantanea): void => {
     boton.classList.toggle('grabando', i.estado === 'grabando');
     boton.classList.toggle('pausado', i.estado === 'pausado');
     boton.setAttribute(
       'aria-label',
-      i.estado === 'grabando'
-        ? 'Recorrido (track): grabando'
-        : i.estado === 'pausado'
-          ? 'Recorrido (track): en pausa'
-          : 'Recorrido (track)',
+      i.estado === 'grabando' ? 'Recorrido (track): grabando' : i.estado === 'pausado' ? 'Recorrido (track): en pausa' : 'Recorrido (track)',
     );
   };
 
   grabador.suscribir((i) => {
-    pintarIcono(i);
+    pintarBoton(i);
     pintar(i);
   });
-  pintarIcono(grabador.instantanea);
+  pintarBoton(grabador.instantanea);
   pintar(grabador.instantanea);
   void pintarLista();
 }
